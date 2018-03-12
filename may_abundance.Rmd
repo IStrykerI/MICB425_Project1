@@ -1,0 +1,213 @@
+---
+title: "Part 4"
+author: "May Ho"
+date: "March 12, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+
+```{r}
+# Set-Up
+library("tidyverse")
+library("phyloseq")
+library("data.table")
+library("magrittr")
+
+#Load phyloseq data
+load(file = "../mothur_phyloseq.RData")
+
+#Retrieve tables
+OTU_MTable = mothur@otu_table
+Sam_MData = mothur@sam_data
+Tax_MTable = mothur@tax_table
+
+#Transforming Mothur into data frames
+OTU_MDF <- data.frame(OTU_MTable)
+Tax_MDF <- data.frame(Tax_MTable)
+setDT(Tax_MDF, keep.rownames=TRUE)
+colnames(Tax_MDF)[1] <- "OTU"
+
+#Data shared by both (Depth/O2 Extracted)
+Sam_DF <- data.frame(Sam_MData)
+setDT(Sam_DF, keep.rownames=FALSE)
+Sam_Data_Filtered <- Sam_DF %>% select(Depth_m, O2_uM)
+
+# Data for Mothur (List of OTU for Planctomyces). Second line is for when you don't trust the first line (LUL)
+Taxon_MData_Filtered <- Tax_MDF %>% select(OTU, Genus) %>% filter(str_detect(Genus, 'Planctomyces'))
+OTU_MList <- Taxon_MData_Filtered %>% select(OTU)
+
+#Samples rarified/normalized to 100,000 sequences per sample to facilitate comparisons between samples.
+# A random seed was set to ensure reproducibility.
+
+set.seed(4832)
+m.norm = rarefy_even_depth(mothur, sample.size=100000)
+
+# Rarified counts converted to relative abundance percentages 
+m.perc = transform_sample_counts(m.norm, function(x) 100 * x/sum(x))
+
+#Generate linear model for each OTU
+m.norm %>% 
+  psmelt() %>% 
+  filter(OTU=="Otu0125") %>% 
+  
+  lm(Abundance ~ Depth_m, .) %>% 
+  summary()
+
+m.norm %>% 
+  psmelt() %>% 
+  filter(OTU=="Otu0144") %>% 
+  
+  lm(Abundance ~ Depth_m, .) %>% 
+  summary()
+
+m.norm %>% 
+  psmelt() %>% 
+  filter(OTU=="Otu0401") %>% 
+  
+  lm(Abundance ~ Depth_m, .) %>% 
+  summary()
+
+m.norm %>% 
+  psmelt() %>% 
+  filter(OTU=="Otu0592") %>% 
+  
+  lm(Abundance ~ Depth_m, .) %>% 
+  summary()
+
+m.norm %>% 
+  psmelt() %>% 
+  filter(OTU=="Otu0873") %>% 
+  
+  lm(Abundance ~ Depth_m, .) %>% 
+  summary()
+
+m.norm %>% 
+  psmelt() %>% 
+  filter(OTU=="Otu1006") %>% 
+  
+  lm(Abundance ~ Depth_m, .) %>% 
+  summary()
+
+m.norm %>% 
+  psmelt() %>% 
+  filter(OTU=="Otu1038") %>% 
+  
+  lm(Abundance ~ Depth_m, .) %>% 
+  summary()
+
+m.norm %>% 
+  psmelt() %>% 
+  filter(OTU=="Otu1262") %>% 
+  
+  lm(Abundance ~ Depth_m, .) %>% 
+  summary()
+
+m.norm %>% 
+  psmelt() %>% 
+  filter(OTU=="Otu1891") %>% 
+  
+  lm(Abundance ~ Depth_m, .) %>% 
+  summary()
+
+m.norm %>% 
+  psmelt() %>% 
+  filter(OTU=="Otu2835") %>% 
+  
+  lm(Abundance ~ Depth_m, .) %>% 
+  summary()
+
+m.norm %>% 
+  psmelt() %>% 
+  filter(OTU=="Otu3173") %>% 
+  
+  lm(Abundance ~ Depth_m, .) %>% 
+  summary()
+
+m.norm %>% 
+  psmelt() %>% 
+  filter(OTU=="Otu3174") %>% 
+  
+  lm(Abundance ~ Depth_m, .) %>% 
+  summary()
+
+m.norm %>% 
+  psmelt() %>% 
+  filter(OTU=="Otu3175") %>% 
+  
+  lm(Abundance ~ Depth_m, .) %>% 
+  summary()
+
+m.norm %>% 
+  psmelt() %>% 
+  filter(OTU=="Otu3176") %>% 
+  
+  lm(Abundance ~ Depth_m, .) %>% 
+  summary()
+
+m.norm %>% 
+  psmelt() %>% 
+  filter(OTU=="Otu3371") %>% 
+  
+  lm(Abundance ~ Depth_m, .) %>% 
+  summary()
+
+m.norm %>% 
+  psmelt() %>% 
+  filter(OTU=="Otu3887") %>% 
+  
+  lm(Abundance ~ Depth_m, .) %>% 
+  summary()
+
+p.adjust(c(0.7243, 0.7197,0.9914,0.9366,0.6663,0.006371,0.9476,0.6864,0.0164,0.6864,0.9291
+           ,0.9291,0.885,0.9291,0.6864,0.0164), method = "fdr")
+
+# Abundance of OTUs within unclassified domain across depth
+m.perc %>% 
+  subset_taxa(Genus=="Planctomyces") %>% 
+  psmelt() %>% 
+
+ggplot() +
+  geom_point(aes(x=Depth_m, y=Abundance)) +
+  geom_smooth(method='lm', aes(x=Depth_m, y=Abundance)) +
+  facet_wrap(~OTU, scales="free_y") +
+  labs(title="Abundance of OTUs within Planctomyces genus across depth")
+
+# Abundance of OTUs within unclassified depth by colour
+m.perc %>% 
+  subset_taxa(Genus=="Planctomyces") %>%
+  psmelt() %>% 
+  
+  ggplot() +
+  geom_point(aes(x=Sample, y=OTU, size=Abundance, color=OTU)) + 
+  scale_size_continuous(range = c(0,5)) +
+  labs(title="Abundance of OTUs within unclassified domain across depth")
+
+#With respect to oxygen 
+m.perc %>% 
+  subset_taxa(Genus=="Planctomyces") %>% 
+  psmelt() %>% 
+  
+  ggplot() +
+  geom_point(aes(x=Depth_m, y=Abundance)) +
+  geom_smooth(method='lm', aes(x=O2_uM, y=Abundance)) +
+  facet_wrap(~OTU, scales="free_y") +
+  labs(title="Abundance of OTUs within Planctomyces genus across oxygen concentration")
+
+m.perc %>% 
+  subset_taxa(Genus=="Planctomyces") %>%
+  psmelt() %>% 
+  
+  ggplot() +
+  geom_point(aes(x=O2_uM, y=OTU, size=Abundance, color=OTU)) + 
+  scale_size_continuous(range = c(0,5)) +
+  labs(title="Abundance of OTUs within unclassified domain across oxygen concentration")
+
+
+```
+
