@@ -193,6 +193,24 @@ plot_richness(workingTaxa, x="O2_uM", color="O2_uM", measures = c("Chao1", "Shan
 ## Analysis of microbial community structure along with depth and oxygen concentration \label{sec:community}
 
 ## Analysis of abundance information of [OTU****] along with depth and/or oxygen concentration \label{sec:OTUabundance}
+```{r}
+subset_taxa(subGenTaxa, Genus=="Planctomyces") %>% 
+  tax_glom(taxrank = "Genus") %>%
+  psmelt() %>%
+  
+  lm(Abundance ~ Depth_m, .) %>% 
+  summary()
+
+subset_taxa(subGenTaxa, Genus=="Planctomyces") %>%
+  psmelt() %>% 
+  group_by(Sample) %>% 
+  summarize(Abundance_sum=sum(Abundance), Depth_m=mean(Depth_m)) %>% 
+  
+ggplot() +
+  geom_point(aes(x=Depth_m, y=Abundance_sum)) +
+  geom_smooth(method="lm", aes(x=as.numeric(Depth_m), y=Abundance_sum)) +
+  labs(title="Abundance of Plantomyces across depth")
+```
 
 ## Estimate richness (number of OTUs/ASVs) for [OTU****] \label{sec:richness}
 
