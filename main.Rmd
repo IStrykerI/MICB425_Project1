@@ -1,0 +1,208 @@
+---
+title: "[Title]"
+subtitle: "Module 3: Project 1 by Team 5"
+author: 
+  - Karl Abuan
+  - May Ho
+  - Jonah Lin
+  - Leilynaz Malekafzali
+  - Tiffany Yang
+  - Abdur Rahman M. A. Basher
+abstract: |
+  This is the abstract.
+  It consists of two paragraphs.
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+header-includes:
+   - \newcommand*{\secref}[1]{Section~\ref{#1}}
+output:
+  html_document:
+    toc: yes
+    toc_depth: 3
+    df_print: paged
+    toc_float:
+      collapsed: no
+  pdf_document:
+    toc: yes
+    toc_depth: 3
+    number_sections: yes
+    fig_caption: true
+mainfont: Times
+fontsize: 11 pt
+editor_options:
+  chunk_output_type: console
+urlcolor: blue
+bibliography: module_3.bib
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=8, fig.height=6, fig.path='Figs/',
+                      echo=TRUE, warning=FALSE, include=TRUE, tidy = TRUE, message=FALSE)
+```
+
+# Introduction
+
+# Problem Formulation
+
+
+# Materials and Experimental Configuration
+## Experimental Protocols
+Here ....:
+
+\textbf{P1.} Analysis of microbial community structure along with depth and oxygen concentration (see \secref{sec:community}).
+
+\textbf{P2.} Analysis of abundance information of [OTU****] along with depth and/or oxygen concentration (see \secref{sec:OTUabundance}).
+
+\textbf{P3.} Estimate richness (number of OTUs/ASVs) for [OTU****] (see \secref{sec:richness}).
+
+\textbf{P4.} Interpretation of abundance information of OTUs/ASVs of [OTU****] along with depth and/or oxygen concentration (see \secref{sec:ASVabundances}).
+
+## Dataset
+## Parameters Configuration
+
+```{r eval=FALSE}
+## try http:// if https:// URLs are not supported
+source("https://bioconductor.org/biocLite.R")  
+biocLite("phyloseq")
+biocLite("metagenomeSeaq")
+library("tidyverse")
+library("ggplot2")
+```
+
+```{r, include=FALSE}
+source("https://bioconductor.org/biocLite.R")  
+library("tidyverse")
+library("phyloseq")
+library("ggplot2")
+```
+
+
+## Data Preporocessing
+Let us analyze the data in depth to summarize their main characteristics and plot some interesting patterns.
+
+```{r}
+load("data/mothur_phyloseq.RData")
+```
+
+First, we need to understand the properties of the mothur object by peaking into this object.
+
+```{r}
+mothur
+```
+
+The phyloseq object can be accessed using special accessor functions, or ``accessors``, which return specific information about phylogenetic sequencing data. For instance, we can get varieuty of information regrading the number of taxa, number of samples, covairets, taxa names, taxa rankings, OTU table structure reprensting  OTU counts, with rows corresponding to samples and columns to OTUs, and phylogenetic tree for OTU.
+
+```{r}
+ntaxa(mothur)
+nsamples(mothur)
+sample_names(mothur)
+sample_variables(mothur)
+head(taxa_names(mothur))
+rank_names(mothur)
+cat("The dimension of the otu_table of the mothur object: ", dim(otu_table(mothur)))
+otu_table(mothur)[, 1:5]
+print("First few rows of the tax_table of the mothur object: ")
+head(tax_table(mothur))
+```
+
+Next we perform a series of filterings according to three rules: 
+
+i)- exclude OTUs that are not observed for more than $4$ samples:
+```{r}
+abundantTaxa = filter_taxa(mothur, function(x) sum(x == 0) <= 4, TRUE)
+cat("The number of taxa after applying filter 1: ", ntaxa(abundantTaxa))
+```
+
+ii)- prune samples and OTUs with unknown values, such as ``unclassified`` value:
+```{r}
+basedOnGenus <- as.data.frame(tax_table(abundantTaxa)) %>% 
+  filter(!str_detect(Genus, 'uncultured'), !str_detect(Genus, 'unclassified')) %>%
+  select(Genus)
+knownTaxa = subset_taxa(abundantTaxa, Genus %in% basedOnGenus$Genus)
+cat("The number of taxa after applying filter 2: ", ntaxa(knownTaxa))
+```
+
+iii)- any phylum fail to have more than $5$ OTUs should be trimmed:
+```{r}
+basedOnphylums <- as.data.frame(tax_table(knownTaxa)) %>% 
+  group_by(Phylum) %>% 
+  count() %>% 
+  filter( n > 5)
+
+## In contrary we can run the following:
+# workingTaxa <- prune_taxa(taxa_sums(knownTaxa) > 5, knownTaxa)
+
+workingTaxa = subset_taxa(knownTaxa, Phylum %in% basedOnphylums$Phylum)
+cat("The number of taxa after applying filter 3: ", ntaxa(workingTaxa))
+```
+
+### Exploratory Data Analysis
+
+Before proceeding with the computations for differential expression across samples, it is possible to produce a plot showing the sample relations based on multidimensional scaling. The basic premise is that we make a plot so samples which are similar are near to each other in the plot while samples that are dissimilar are far from each other. Here is an example.
+
+Plot a heatmap to peak the abundances of $30$ taxa across samples:
+```{r}
+tmpTaxa = names(sort(taxa_sums(workingTaxa), decreasing = TRUE)[1:30])
+prunedTaxa = prune_taxa(tmpTaxa, workingTaxa)
+plot_heatmap(prunedTaxa, "PCoA", distance = "bray")
+```
+
+To observe similarities between samples and OTUs, we apply the follwoing:
+```{r}
+heatmap(otu_table(prunedTaxa))
+```
+
+The following function will assist us to understand the unique Phylum rank:
+```{r}
+get_taxa_unique(physeq = workingTaxa, taxonomic.rank = "Phylum")
+```
+
+We choose the \emph{Planctomycetes} phylum and we explore the distribution of genera of this phylum.
+```{r}
+subTaxa = subset_taxa(workingTaxa, Phylum == "Planctomycetes")
+plot_bar(subTaxa, fill="Genus")
+```
+
+We explore how the genus of this phulm varies across samples (represnting depth of the ocean) based on genus abundances.
+```{r}
+plot_bar(subTaxa, "Depth_m", fill="Genus", facet_grid=~Family)
+```
+
+The genus was chosen to be \emph{Planctomyces} and we identify the following OTUs.
+```{r}
+subGenTaxa = subset_taxa(workingTaxa, Genus == "Planctomyces")
+colnames(otu_table(subGenTaxa))
+```
+
+Estimate diversity of \emph{Planctomyces} across depth and oxygen concentration.
+```{r}
+theme_set(theme_bw())
+pal = "Set1"
+scale_colour_discrete <-  function(palname=pal, ...){
+  scale_colour_brewer(palette=palname, ...)
+}
+scale_fill_discrete <-  function(palname=pal, ...){
+  scale_fill_brewer(palette=palname, ...)
+}
+
+plot_richness(workingTaxa, x="Depth_m", color="Depth_m", measures = c("Chao1", "Shannon", "Simpson")) + geom_point(size=5, alpha=0.7)+ geom_line()
+plot_richness(workingTaxa, x="O2_uM", color="O2_uM", measures = c("Chao1", "Shannon", "Simpson")) + geom_point(size=5, alpha=0.7) + geom_line()
+```
+
+# Results
+
+## Analysis of microbial community structure along with depth and oxygen concentration \label{sec:community}
+
+## Analysis of abundance information of [OTU****] along with depth and/or oxygen concentration \label{sec:OTUabundance}
+
+## Estimate richness (number of OTUs/ASVs) for [OTU****] \label{sec:richness}
+
+## Interpretation of abundance information of OTUs/ASVs of [OTU****] along with depth and/or oxygen concentration \label{sec:ASVabundances}
+
+# Discussion
+
+[@Hawley2017:compendium;@Torres2017:compendium]
+
+---
+
+# References
+
