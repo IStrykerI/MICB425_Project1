@@ -1,0 +1,90 @@
+---
+title: 'Project #1'
+author: "YiWei Yang (18422148)"
+date: '2018-03-12'
+output: html_document
+---
+##Methods
+```{r setup, include=FALSE}
+library("tidyverse")
+```
+
+```{r}
+library("phyloseq")
+library("magrittr")
+```
+
+##Results:
+
+###Data were loaded into R
+```{r}
+load("~/Documents/MICB425_portfolio/mothur_phyloseq.RData")
+
+```
+
+
+
+###Samples were rarefied/normalized to 100,000 sequences per sample to facilitate comparisons between samples. A random seed was set to ensure reproducibility.
+
+```{r}
+set.seed(4832)
+m.norm = rarefy_even_depth(mothur, sample.size=100000)
+```
+
+###Rarefied counts were converted to relative abundance percentages.
+
+```{r}
+m.perc = transform_sample_counts(m.norm, function(x) 100 * x/sum(x))
+```
+
+##How does microbial community structure change with depth and oxygen concentration?
+
+###Taxa presence and abundance
+####Example plots using phyloseq for domain data. You should explore other taxonomy levels.
+```{r}
+m.perc %>% 
+  
+plot_bar(fill="Domain") + 
+  geom_bar(aes(fill=Domain), stat="identity") +
+  labs(title="Example 4: Domains across samples")
+
+```
+
+```{r}
+m.perc %>% 
+  
+plot_bar() + 
+  geom_bar(aes(fill=Domain), stat="identity") +
+  facet_wrap(~Phylum, scales="free_y")+
+  labs(title="Example 5: Phyla across samples")
+```
+
+####Examples outside of phyloseq
+
+```{r}
+m.perc %>%
+  tax_glom(taxrank = 'Domain') %>%
+  psmelt() %>% 
+
+ggplot() +
+  geom_boxplot(aes(x=Domain, y=Abundance)) +
+  coord_flip() +
+  labs(title="Example 6: Domain boxplots")
+```
+
+##Within your taxon, what is the richness (number of OTUs/ASVs)?
+
+####Across all samples, there are 44 OTUs (i.e. taxa) within the unclassified domain.
+```{r}
+m.norm %>% 
+  subset_taxa(Domain=="unknown") 
+```
+
+####Counting OTUs within the unclassified domain within each sample…
+
+```{r}
+m.norm %>% 
+  subset_taxa(Domain=="unknown") %>%
+  estimate_richness(measures = c("Observed"))
+```
+

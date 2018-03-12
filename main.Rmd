@@ -31,7 +31,7 @@ fontsize: 11 pt
 editor_options:
   chunk_output_type: console
 urlcolor: blue
-bibliography: module_3.bib
+bibliography: main.bib
 ---
 
 ```{r global_options, include=FALSE}
@@ -63,7 +63,7 @@ Here ....:
 ## try http:// if https:// URLs are not supported
 source("https://bioconductor.org/biocLite.R")  
 biocLite("phyloseq")
-biocLite("metagenomeSeaq")
+biocLite("metagenomeSeq")
 library("tidyverse")
 library("ggplot2")
 ```
@@ -170,7 +170,7 @@ plot_bar(subTaxa, "Depth_m", fill="Genus", facet_grid=~Family)
 The genus was chosen to be \emph{Planctomyces} and we identify the following OTUs.
 ```{r}
 subGenTaxa = subset_taxa(workingTaxa, Genus == "Planctomyces")
-colnames(otu_table(subGenTaxa))
+suggestedOTU <- colnames(otu_table(subGenTaxa))
 ```
 
 Estimate diversity of \emph{Planctomyces} across depth and oxygen concentration.

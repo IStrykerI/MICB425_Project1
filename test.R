@@ -27,6 +27,12 @@ workingTaxa <- prune_taxa(taxa_sums(knownTaxa) > 5, knownTaxa)
 
 #############################################################
 
+dev.off()
+graphics.off()
+#par("mar")
+#par(mar=c(1,1,1,1))
+par(mar = rep(0,4))
+
 ## Perform correlations
 D <-  phyloseq_to_metagenomeSeq(workingTaxa)
 # agg <- aggregateByTaxonomy(D, lvl="Phylum", norm=FALSE, aggfun=colSums)
@@ -35,20 +41,16 @@ mat = MRcounts(D)
 cors = correlationTest(D, norm=TRUE, log=FALSE)
 ind  = correctIndices(nrow(mat))
 cormat = as.matrix(dist(x = mat, diag = FALSE))
-cormat[cormat > 0] = 0
+#cormat[cormat > 0] = 0
 cormat[upper.tri(cormat)][ind] = round(cors[, 1], 4)
-#cormat[lower.tri(cormat)][ind] = round(cors[, 1], 4)
+cormat[lower.tri(cormat)][ind] = round(cors[, 1], 4)
 #cormat <- round(1000 * cormat) # (prints more nicely)
 
 ## Perform hclust
-dev.off()
-graphics.off()
-#par("mar")
-#par(mar=c(1,1,1,1))
-par(mar = rep(0,4))
-bthlcust <- pvclust(workingTaxa@otu_table, method.dist="correlation",nboot=1000, parallel=FALSE)
-#plot(bthlcust)
-#pvrect(bthlcust)
+bthlcust <- pvclust(cormat, method.dist="correlation",
+                    nboot=1000, parallel=TRUE)
+plot(bthlcust)
+pvrect(bthlcust)
 
 dend <- as.dendrogram(bthlcust)
 # Color the branches based on the clusters:
@@ -56,8 +58,14 @@ dend <- color_branches(dend)
 # We hang the dendrogram a bit:
 dend <- hang.dendrogram(dend, hang_height=0.1)
 # cut the dendrogram based on height:
-OTUs = cut_lower_fun(dend = dend, h = 0.2, FUN = labels)
-pt = prune_taxa(OTUs[[2]], workingTaxa)
+OTUs = cutree(dend = dend, k = 100, FUN = labels)
+for(otu in OTUs)
+{
+  print(as.data.frame(tax_table(prune_taxa(otu, workingTaxa)))["Genus"])
+  n <- readline(prompt="Enter an integer: ")
+}
+
+pt = prune_taxa(OTUs[[1]], workingTaxa)
 plot_richness(pt, x="O2_uM")
 
 heatmap(cormat)
