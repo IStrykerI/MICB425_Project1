@@ -14,8 +14,8 @@ library(phyloseq)
 library(data.table)
 
 # Load phyloseq data
-load("mothur_phyloseq.RData")
-load("qiime2_phyloseq.RData")
+load("data/mothur_phyloseq.RData")
+load("data/qiime2_phyloseq.RData")
 
 # Retrieve tables
 Tax_MTable = mothur@tax_table
@@ -48,9 +48,9 @@ colnames(Tax_MDF)[1] <- "OTU"
 Genus_MTax <- Tax_MDF %>% select(OTU, Genus) %>% filter(!str_detect(Genus, 'uncultured'), !str_detect(Genus, 'unclassified'))
 
 # Filtered Results (Less filtered --> More filtered down the list) = Less Filtered (Genus_MCount) and More Filtered (GM_Grp_Fitered)
-Genus_MCount <- data.frame(table(Genus_MTax)) %>% filter(Freq >= 5, Freq < 50)
+Genus_MCount <- data.frame(table(Genus_MTax %>% select(Genus))) %>% filter(Freq >= 5, Freq < 50)
 
-GM_Grp_Filtered <- Genus_MCount %>% filter(!str_detect(Genus_MTax_Filtered, 'group'), !str_detect(Genus_MTax_Filtered, '_ge'), !str_detect(Genus_MTax_Filtered, 'clade'))
+GM_Grp_Filtered <- Genus_MCount %>% filter(!str_detect(Var1, 'group'), !str_detect(Var1, '_ge'), !str_detect(Var1, 'clade'))
 
 # Transforming Qiime2 into data frames --------------------------------------------------QIIME2 CODE BELOW--------------------------------------
 ASV_DF <- data.frame(ASV_Table)
@@ -65,9 +65,10 @@ colnames(Tax_QM2DF)[1] <- "ASV"
 Genus_QM2Tax <- Tax_QM2DF %>% select(ASV, Genus) %>% filter(!str_detect(Genus, 'uncultured'), !str_detect(Genus, 'unclassified'))
 
 # Filtered Results (Less filtered --> More filtered down the list) = Less Filtered (Genus_QM2Count) and More Filtered (GQM2_Grp_Fitered)
-Genus_QM2Count <- data.frame(table(Genus_QM2Tax)) %>% filter(Freq >= 5, Freq < 50)
+# Not working right now, Missing Freq Column
+Genus_QM2Count <- data.frame(table(Genus_QM2Tax %>% select(Genus))) %>% filter(Freq >= 5, Freq < 50)
 
-GQM2_Grp_Filtered <- Genus_QM2Count %>% filter(!str_detect(Genus_QM2Tax_Filtered, 'group'), !str_detect(Genus_QM2Tax_Filtered, '_ge'), !str_detect(Genus_QM2Tax_Filtered, 'clade'))
+GQM2_Grp_Filtered <- Genus_QM2Count %>% filter(!str_detect(Var1, 'group'), !str_detect(Var1, '_ge'), !str_detect(Var1, 'clade'))
 
 # WORK . . .
 
