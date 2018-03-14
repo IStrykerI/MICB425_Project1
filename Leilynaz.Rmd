@@ -12,8 +12,7 @@ library("phyloseq")
 
 
 ```{r}
-setwd("/Users/Leilynaz/Documents/MICB425_portfolio/")
-load("/Users/Leilynaz/Desktop/MICB425_Project1/data/mothur_phyloseq.RData")
+load("data/mothur_phyloseq.RData")
 ```
 
 Samples were rarefied/normalized to 100,000 sequences per sample to facilitate comparisons between samples. A random seed was set to ensure reproducibility.

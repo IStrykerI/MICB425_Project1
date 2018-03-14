@@ -1,5 +1,5 @@
 ---
-title: "Part 4"
+title: "Part 4: Determining abundance changes relative to [O^2^] and Depth"
 author: "May Ho"
 date: "March 12, 2018"
 output: html_document
@@ -20,8 +20,11 @@ library("data.table")
 library("magrittr")
 
 #Load phyloseq data
-load(file = "../mothur_phyloseq.RData")
+load("data/mothur_phyloseq.RData")
+```
 
+
+```{r}
 #Retrieve tables
 OTU_MTable = mothur@otu_table
 Sam_MData = mothur@sam_data
@@ -37,7 +40,8 @@ colnames(Tax_MDF)[1] <- "OTU"
 Sam_DF <- data.frame(Sam_MData)
 setDT(Sam_DF, keep.rownames=FALSE)
 Sam_Data_Filtered <- Sam_DF %>% select(Depth_m, O2_uM)
-
+```
+```{r}
 # Data for Mothur (List of OTU for Planctomyces). Second line is for when you don't trust the first line (LUL)
 Taxon_MData_Filtered <- Tax_MDF %>% select(OTU, Genus) %>% filter(str_detect(Genus, 'Planctomyces'))
 OTU_MList <- Taxon_MData_Filtered %>% select(OTU)
@@ -166,7 +170,9 @@ m.norm %>%
 
 p.adjust(c(0.7243, 0.7197,0.9914,0.9366,0.6663,0.006371,0.9476,0.6864,0.0164,0.6864,0.9291
            ,0.9291,0.885,0.9291,0.6864,0.0164), method = "fdr")
+```
 
+```{r}
 # Abundance of OTUs within unclassified domain across depth
 m.perc %>% 
   subset_taxa(Genus=="Planctomyces") %>% 
@@ -207,7 +213,4 @@ m.perc %>%
   geom_point(aes(x=O2_uM, y=OTU, size=Abundance, color=OTU)) + 
   scale_size_continuous(range = c(0,5)) +
   labs(title="Abundance of OTUs within unclassified domain across oxygen concentration")
-
-
 ```
-

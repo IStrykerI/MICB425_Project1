@@ -1,0 +1,293 @@
+---
+title: "Mothur"
+subtitle: "Module 3: Project 1 by Team 5"
+author: 
+  - Karl Abuan
+  - May Ho
+  - Jonah Lin
+  - Leilynaz Malekafzali
+  - Tiffany Yang
+  - Abdur Rahman M. A. Basher
+abstract: |
+  This is the abstract.
+  It consists of two paragraphs.
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+header-includes:
+   - \newcommand*{\secref}[1]{Section~\ref{#1}}
+output:
+  pdf_document:
+    toc: yes
+    toc_depth: 3
+    number_sections: yes
+    fig_caption: true
+  html_document:
+    toc: yes
+    toc_depth: 3
+    df_print: paged
+    toc_float:
+      collapsed: no
+mainfont: Times
+fontsize: 11 pt
+editor_options:
+  chunk_output_type: console
+urlcolor: blue
+bibliography: main.bib
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(fig.width=8, fig.height=6, fig.path='Figs/',
+                      echo=TRUE, warning=FALSE, include=TRUE, tidy = TRUE, message=FALSE)
+```
+
+# Introduction
+
+# Problem Formulation
+
+
+# Materials and Experimental Configuration
+## Experimental Protocols
+Here ....:
+
+\textbf{P1.} Analysis of microbial community structure along with depth and oxygen concentration (see \secref{sec:community}).
+
+\textbf{P2.} Analysis of abundance information of [OTU****] along with depth and/or oxygen concentration (see \secref{sec:OTUabundance}).
+
+\textbf{P3.} Estimate richness (number of OTUs/ASVs) for [OTU****] (see \secref{sec:richness}).
+
+\textbf{P4.} Interpretation of abundance information of OTUs/ASVs of [OTU****] along with depth and/or oxygen concentration (see \secref{sec:ASVabundances}).
+
+## Dataset
+## Parameters Configuration
+
+```{r eval=FALSE}
+## try http:// if https:// URLs are not supported
+source("https://bioconductor.org/biocLite.R")  
+biocLite("phyloseq")
+library("tidyverse")
+library("gridExtra")
+library("magrittr")
+```
+
+```{r, include=FALSE}
+source("https://bioconductor.org/biocLite.R")  
+library("tidyverse")
+library("phyloseq")
+library("gridExtra")
+library("magrittr")
+
+theme_set(theme_bw())
+pal = "Set1"
+scale_colour_discrete <-  function(palname=pal, ...){
+  scale_colour_brewer(palette=palname, ...)
+}
+scale_fill_discrete <-  function(palname=pal, ...){
+  scale_fill_brewer(palette=palname, ...)
+}
+```
+
+
+## Data Preporocessing
+We use saanich inlet datasets that are propocssed using mothur and QIIME2
+
+```{r}
+load("data/mothur_phyloseq.RData")
+load("data/qiime2_phyloseq.RData")
+```
+
+Samples are then rarefied/normalized to $100,000$ sequences per sample to facilitate comparisons between samples. A random seed was set to ensure reproducibility.
+```{r}
+set.seed(4832)
+rarefied = rarefy_even_depth(mothur, sample.size=100000)
+```
+
+Rarefied counts were converted to relative abundance percentages.
+```{r}
+rarefiedPer = transform_sample_counts(rarefied, function(x) 100 * x/sum(x))
+```
+
+Next, we perform a series of filterings according to three rules: i)- exclude OTUs that are not observed for more than $4$ samples; ii)- prune samples and OTUs with unknown values, such as ``unclassified`` value; and iii)- any phylum fail to have more than $5$ OTUs should be trimmed. The codes used for applying the three rules are:
+```{r}
+# First rule
+firstTaxa = filter_taxa(rarefiedPer, function(x) sum(x == 0) <= 4, TRUE)
+
+# Second rule
+basedOnGenus <- as.data.frame(tax_table(firstTaxa)) %>% 
+  filter(!str_detect(Genus, 'uncultured'), !str_detect(Genus, 'unclassified'))
+secondTaxa = subset_taxa(firstTaxa, Genus %in% basedOnGenus$Genus)
+
+# Third rule
+basedOnphylums <- as.data.frame(tax_table(secondTaxa)) %>% 
+  group_by(Phylum) %>% 
+  count() %>% 
+  filter( n > 5)
+## In contrary we can run the following:
+# thirdTaxa <- prune_taxa(taxa_sums(secondTaxa) > 5, secondTaxa)
+thirdTaxa <- subset_taxa(secondTaxa, Phylum %in% basedOnphylums$Phylum)
+```
+
+
+# Results
+
+## Analysis of microbial community structure along with depth and oxygen concentration \label{sec:community}
+
+We first estimate the overall taxa diversity using Shannon's diversity index. 
+```{r}
+rarefiedRich <- estimate_richness(rarefied, measures = "Shannon")
+rarefiedRichAlpha <- full_join(rownames_to_column(rarefiedRich),
+                              rownames_to_column(data.frame(sample_data(rarefiedPer))),
+                              by = "rowname")
+
+p1 <- rarefiedRichAlpha %>% ggplot() +
+  geom_point(aes(x=Depth_m, y=Shannon), size=4, alpha=0.7) +
+  geom_smooth(method='loess', aes(x=as.numeric(Depth_m), y=Shannon)) +
+  labs(title="Alpha-diversity across depth", 
+       y="Shannon's diversity index", x="Depth (m)")
+
+p2 <- rarefiedRichAlpha %>% ggplot() +
+  geom_point(aes(x=O2_uM, y=Shannon), size=4, alpha=0.7) +
+  labs(title="Alpha-diversity across oxygen", 
+       y="Shannon's diversity index", x="Oxygen (uM)")
+
+p3 <- rarefiedRichAlpha %>% 
+  mutate(O2_group = ifelse(O2_uM == 0, "anoxic", "oxic")) %>% 
+  ggplot() + geom_boxplot(aes(x=O2_group, y=Shannon)) +
+  labs(title="Alpha-diversity across oxygen", 
+       y="Shannon's diversity index", x="Oxygen (uM)")
+
+p4 <- rarefiedRichAlpha %>% ggplot() +
+  geom_point(aes(x=Depth_m, y=O2_uM), size=4, alpha=0.7) +
+  geom_smooth(method='loess', aes(x=as.numeric(Depth_m), y=O2_uM)) +
+    labs(title="Oxygen concentration across depth", 
+       y="Oxygen  (uM)", x="Depth (m)")
+
+grid.arrange(p1, p2, p3, p4, ncol=2)
+```
+
+The following function will assist us to understand the unique Phylum rank:
+```{r}
+get_taxa_unique(physeq = thirdTaxa, taxonomic.rank = "Phylum")
+```
+
+We choose the \emph{Planctomycetes} phylum, and explored the distribution of genera of this phylum.
+```{r}
+subTaxa = subset_taxa(thirdTaxa, Phylum == "Planctomycetes")
+plot_bar(subTaxa, fill="Genus") + 
+  geom_bar(aes(color = Genus, fill = Genus), stat = 'identity', 
+           position = 'stack') +
+  labs(title="Genus distribution of Planctomycetes across samples")
+```
+
+We further investigated the genus distribution of this phylum across samples grouped by family level.
+```{r}
+plot_bar(subTaxa, fill="Genus", facet_grid=~Family) + 
+  geom_bar(aes(color = Genus, fill = Genus), stat = 'identity', 
+           position = 'stack') +
+    labs(title="Genus distribution of Planctomycetes across samples grouped by family level")
+```
+
+Finally, we settled on performing experimental analysis at \emph{Planctomyces} genus level and it's associated OTUs.
+```{r}
+workingTaxa = subset_taxa(thirdTaxa, Genus == "Planctomyces")
+(suggestedOTUs <- colnames(otu_table(workingTaxa)))
+```
+
+## Analysis of abundance information of [OTU****] along with depth and/or oxygen concentration \label{sec:OTUabundance}
+
+```{r}
+workingTaxa %>% tax_glom(taxrank = "Genus") %>% psmelt() %>%
+  lm(Abundance ~ Depth_m, .) %>% 
+  summary()
+
+workingTaxa %>% psmelt() %>% group_by(Sample) %>% 
+  summarize(Abundance_sum=sum(Abundance), Depth_m=mean(Depth_m)) %>% 
+  ggplot() +
+  geom_point(aes(x=Depth_m, y=Abundance_sum), size=5, alpha=0.7) +
+  geom_smooth(method="lm", aes(x=as.numeric(Depth_m), y=Abundance_sum)) +
+  labs(title="Abundance of Plantomyces across depth")
+```
+
+```{r}
+workingTaxa %>% tax_glom(taxrank = "Genus") %>% psmelt() %>%
+  lm(Abundance ~ O2_uM, .) %>% 
+  summary()
+
+workingTaxa %>% psmelt() %>% group_by(Sample) %>% 
+  summarize(Abundance_sum=sum(Abundance), Oxyzen=mean(O2_uM)) %>% 
+  ggplot() +
+  geom_point(aes(x=Oxyzen, y=Abundance_sum), size=5, alpha=0.7) +
+  geom_smooth(method="lm", aes(x=as.numeric(Oxyzen), y=Abundance_sum)) +
+  labs(title="Abundance of Plantomyces with respect to oxyzen concentration")
+```
+
+
+## Estimate richness (number of OTUs/ASVs) for [OTU****] \label{sec:richness}
+
+We explore the diversity of \emph{Planctomyces} across depth.
+```{r}
+workingTaxa %>% 
+  plot_richness(x="Depth_m", measures = "Shannon") + 
+  geom_smooth(method='loess', aes(x=as.numeric(Depth_m))) +
+  geom_point(size=5, alpha=0.7) +
+  labs(title="Alpha-diversity of Plantomyces across depth", 
+       y="Shannon's diversity index", x="Depth (m)")
+```
+
+## Interpretation of abundance information of OTUs/ASVs of [OTU****] along with depth and/or oxygen concentration \label{sec:ASVabundances}
+
+```{r}
+#Generalized linear model for each OTU
+for (otu in suggestedOTUs) {
+  cat("### Generalized linear model for ", otu)
+  workingTaxa %>% 
+    psmelt() %>% 
+    filter(OTU==otu) %>% 
+    lm(Abundance ~ Depth_m, .) %>% 
+    summary() %>% print()
+}
+
+p.adjust(runif(length(suggestedOTUs), min = 0.005, max = 0.85), method = "fdr")
+```
+
+```{r}
+# Abundance of OTUs within unclassified domain across depth
+p5 <- workingTaxa %>% psmelt() %>% ggplot() +
+  geom_point(aes(x=Depth_m, y=Abundance),size=5, alpha=0.7) +
+  geom_smooth(method='lm', aes(x=Depth_m, y=Abundance)) +
+  facet_wrap(~OTU, scales="free_y") +
+  labs(title="Abundance of OTUs within Planctomyces genus across depth")
+
+# Abundance of OTUs within unclassified depth by colour
+p6 <- workingTaxa %>% psmelt() %>% ggplot() +
+  geom_point(aes(x=Sample, y=OTU, size=Abundance, color=OTU)) + 
+  scale_size_continuous(range = c(0,5)) +
+  labs(title="Abundance of OTUs within Planctomyces genus across depth")
+
+grid.arrange(p5, p6, ncol=2)
+
+```
+
+```{r}
+# Abundance of OTUs within Planctomyces genus across depth
+p7 <- workingTaxa %>% psmelt() %>% ggplot() +
+  geom_point(aes(x=O2_uM, y=Abundance),size=5, alpha=0.7) +
+  geom_smooth(method='lm', aes(x=O2_uM, y=Abundance)) +
+  facet_wrap(~OTU, scales="free_y") +
+  labs(title="Abundance of OTUs within Planctomyces genus across oxygen concentration")
+
+# Abundance of OTUs within Planctomyces genus by colour
+p8 <- workingTaxa %>% psmelt() %>% ggplot() +
+  geom_point(aes(x=Sample, y=OTU, size=O2_uM, color=OTU)) + 
+  scale_size_continuous(range = c(0,5)) +
+  labs(title="Abundance of OTUs within Planctomyces genus across oxygen concentration")
+
+grid.arrange(p7, p8, ncol=2)
+```
+
+# Discussion
+
+[@Hawley2017:compendium;@Torres2017:compendium]
+
+---
+
+# References
+
