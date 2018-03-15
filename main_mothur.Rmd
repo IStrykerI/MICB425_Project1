@@ -112,7 +112,7 @@ firstTaxa = filter_taxa(rarefiedPer, function(x) sum(x == 0) <= 4, TRUE)
 
 # Second rule
 basedOnGenus <- as.data.frame(tax_table(firstTaxa)) %>% 
-  filter(!str_detect(Genus, 'uncultured'), !str_detect(Genus, 'unclassified'))
+  filter(!str_detect(Genus, 'uncultured|unclassified'))
 secondTaxa = subset_taxa(firstTaxa, Genus %in% basedOnGenus$Genus)
 
 # Third rule
@@ -133,9 +133,7 @@ thirdTaxa <- subset_taxa(secondTaxa, Phylum %in% basedOnphylums$Phylum)
 We first estimate the overall taxa diversity using Shannon's diversity index. 
 ```{r}
 rarefiedRich <- estimate_richness(rarefied, measures = "Shannon")
-rarefiedRichAlpha <- full_join(rownames_to_column(rarefiedRich),
-                              rownames_to_column(data.frame(sample_data(rarefiedPer))),
-                              by = "rowname")
+rarefiedRichAlpha <- full_join(rownames_to_column(rarefiedRich),                              rownames_to_column(data.frame(sample_data(rarefiedPer))), by = "rowname")
 
 p1 <- rarefiedRichAlpha %>% ggplot() +
   geom_point(aes(x=Depth_m, y=Shannon), size=4, alpha=0.7) +
@@ -170,7 +168,7 @@ get_taxa_unique(physeq = thirdTaxa, taxonomic.rank = "Phylum")
 
 We choose the \emph{Planctomycetes} phylum, and explored the distribution of genera of this phylum.
 ```{r}
-subTaxa = subset_taxa(thirdTaxa, Phylum == "Planctomycetes")
+subTaxa <- subset_taxa(thirdTaxa, Phylum == "Planctomycetes")
 plot_bar(subTaxa, fill="Genus") + 
   geom_bar(aes(color = Genus, fill = Genus), stat = 'identity', 
            position = 'stack') +
@@ -235,9 +233,9 @@ workingTaxa %>%
 ## Interpretation of abundance information of OTUs/ASVs of [OTU****] along with depth and/or oxygen concentration \label{sec:ASVabundances}
 
 ```{r}
-#Generalized linear model for each OTU
+#General linear model for each OTU
 for (otu in suggestedOTUs) {
-  cat("### Generalized linear model for ", otu)
+  cat("### General linear model for", otu)
   workingTaxa %>% 
     psmelt() %>% 
     filter(OTU==otu) %>% 
@@ -260,6 +258,7 @@ p5 <- workingTaxa %>% psmelt() %>% ggplot() +
 p6 <- workingTaxa %>% psmelt() %>% ggplot() +
   geom_point(aes(x=Sample, y=OTU, size=Abundance, color=OTU)) + 
   scale_size_continuous(range = c(0,5)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   labs(title="Abundance of OTUs within Planctomyces genus across depth")
 
 grid.arrange(p5, p6, ncol=2)
@@ -278,6 +277,7 @@ p7 <- workingTaxa %>% psmelt() %>% ggplot() +
 p8 <- workingTaxa %>% psmelt() %>% ggplot() +
   geom_point(aes(x=Sample, y=OTU, size=O2_uM, color=OTU)) + 
   scale_size_continuous(range = c(0,5)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   labs(title="Abundance of OTUs within Planctomyces genus across oxygen concentration")
 
 grid.arrange(p7, p8, ncol=2)
