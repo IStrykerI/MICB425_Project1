@@ -133,7 +133,8 @@ thirdTaxa <- subset_taxa(secondTaxa, Phylum %in% basedOnphylums$Phylum)
 We first estimate the overall taxa diversity using Shannon's diversity index. 
 ```{r}
 rarefiedRich <- estimate_richness(rarefied, measures = "Shannon")
-rarefiedRichAlpha <- full_join(rownames_to_column(rarefiedRich),                              rownames_to_column(data.frame(sample_data(rarefiedPer))), by = "rowname")
+rarefiedRichAlpha <- full_join(rownames_to_column(rarefiedRich), 
+                               rownames_to_column(data.frame(sample_data(rarefiedPer))), by = "rowname")
 
 p1 <- rarefiedRichAlpha %>% ggplot() +
   geom_point(aes(x=Depth_m, y=Shannon), size=4, alpha=0.7) +
