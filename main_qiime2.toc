@@ -1,0 +1,14 @@
+\contentsline {section}{\numberline {1}Introduction}{1}{section.1}
+\contentsline {section}{\numberline {2}Problem Formulation}{1}{section.2}
+\contentsline {section}{\numberline {3}Materials and Experimental Configuration}{1}{section.3}
+\contentsline {subsection}{\numberline {3.1}Experimental Protocols}{1}{subsection.3.1}
+\contentsline {subsection}{\numberline {3.2}Dataset}{1}{subsection.3.2}
+\contentsline {subsection}{\numberline {3.3}Parameters Configuration}{1}{subsection.3.3}
+\contentsline {subsection}{\numberline {3.4}Data Preporocessing}{2}{subsection.3.4}
+\contentsline {section}{\numberline {4}Results}{3}{section.4}
+\contentsline {subsection}{\numberline {4.1}Analysis of microbial community structure along with depth and oxygen concentration }{3}{subsection.4.1}
+\contentsline {subsection}{\numberline {4.2}Analysis of abundance information of {[}OTU****{]} along with depth and/or oxygen concentration }{6}{subsection.4.2}
+\contentsline {subsection}{\numberline {4.3}Estimate richness (number of OTUs/ASVs) for {[}OTU****{]} }{9}{subsection.4.3}
+\contentsline {subsection}{\numberline {4.4}Interpretation of abundance information of OTUs/ASVs of {[}OTU****{]} along with depth and/or oxygen concentration }{9}{subsection.4.4}
+\contentsline {section}{\numberline {5}Discussion}{13}{section.5}
+\contentsline {section}{References}{13}{section*.2}

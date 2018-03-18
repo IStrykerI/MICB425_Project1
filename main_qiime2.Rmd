@@ -87,7 +87,7 @@ scale_fill_discrete <-  function(palname=pal, ...){
 
 
 ## Data Preporocessing
-We use saanich inlet datasets that are propocssed using mothur and QIIME2
+We use saanich inlet datasets that are propocssed using Mothur and QIIME2
 
 ```{r}
 load("data/mothur_phyloseq.RData")
@@ -105,7 +105,7 @@ Rarefied counts were converted to relative abundance percentages.
 rarefiedPer = transform_sample_counts(rarefied, function(x) 100 * x/sum(x))
 ```
 
-Next, we perform a series of filterings according to three rules: i)- exclude OTUs that are not observed for more than $4$ samples; ii)- prune samples and OTUs with unknown values, such as ``unclassified`` value; and iii)- any phylum fail to have more than $5$ OTUs should be trimmed. The codes used for applying the three rules are:
+Next, we perform a series of filterings according to three rules: i)- exclude ASVs that are not observed for more than $4$ samples; ii)- prune samples and ASVs with unknown values, such as ``unclassified`` value; and iii)- any phylum fail to have more than $5$ ASVs should be trimmed. The codes used for applying the three rules are:
 ```{r}
 # First rule
 firstTaxa <- filter_taxa(rarefiedPer, function(x) sum(x == 0) <= 4, TRUE)
@@ -119,7 +119,7 @@ secondTaxa <- subset_taxa(firstTaxa, Genus %in% basedOnGenus$Genus)
 basedOnphylums <- as.data.frame(tax_table(secondTaxa)) %>% 
   group_by(Phylum) %>% 
   count() %>% 
-  filter( n > 5)
+  filter(n > 5)
 ## In contrary we can run the following:
 # thirdTaxa <- prune_taxa(taxa_sums(secondTaxa) > 5, secondTaxa)
 thirdTaxa <- subset_taxa(secondTaxa, Phylum %in% basedOnphylums$Phylum)
@@ -184,7 +184,7 @@ plot_bar(subTaxa, fill="Genus", facet_grid=~Family) +
     labs(title="Genus distribution of Planctomycetes across samples grouped by family level")
 ```
 
-Finally, we settled on performing experimental analysis at \emph{Planctomyces} genus level and it's associated OTUs.
+Finally, we settled on performing experimental analysis at \emph{Planctomyces} genus level and its associated ASVs.
 ```{r}
 workingTaxa = subset_taxa(thirdTaxa, Genus == "D_5__Planctomyces")
 (suggestedOTUs <- rownames(otu_table(workingTaxa)))
@@ -234,7 +234,7 @@ workingTaxa %>%
 ## Interpretation of abundance information of OTUs/ASVs of [OTU****] along with depth and/or oxygen concentration \label{sec:ASVabundances}
 
 ```{r}
-#General linear model for each OTU
+#General linear model for each ASV
 for (otu in suggestedOTUs) {
  cat("### General linear model for", otu)
  workingTaxa %>%
@@ -248,14 +248,14 @@ p.adjust(runif(length(suggestedOTUs), min = 0.005, max = 0.85), method = "fdr")
 ```
 
 ```{r}
-# Abundance of OTUs within unclassified domain across depth
+# Abundance of ASVs within unclassified domain across depth
 p5 <- workingTaxa %>% psmelt() %>% ggplot() +
   geom_point(aes(x=Depth_m, y=Abundance),size=5, alpha=0.7) +
   geom_smooth(method='lm', aes(x=Depth_m, y=Abundance)) +
   facet_wrap(~OTU, scales="free_y") +
   labs(title="Abundance of ASVs within Planctomyces genus across depth")
 
-# Abundance of OTUs within unclassified depth by colour
+# Abundance of ASVs within unclassified depth by colour
 p6 <- workingTaxa %>% psmelt() %>% ggplot() +
   geom_point(aes(x=Sample, y=OTU, size=Abundance, color=OTU)) + 
   scale_size_continuous(range = c(0,5)) +
@@ -266,14 +266,14 @@ grid.arrange(p5, p6, ncol=2)
 ```
 
 ```{r}
-# Abundance of OTUs within Planctomyces genus across depth
+# Abundance of ASVs within Planctomyces genus across depth
 p7 <- workingTaxa %>% psmelt() %>% ggplot() +
   geom_point(aes(x=O2_uM, y=Abundance),size=5, alpha=0.7) +
   geom_smooth(method='lm', aes(x=O2_uM, y=Abundance)) +
   facet_wrap(~OTU, scales="free_y") +
   labs(title="Abundance of ASVs within Planctomyces genus across oxygen concentration")
 
-# Abundance of OTUs within Planctomyces genus by colour
+# Abundance of ASVs within Planctomyces genus by colour
 p8 <- workingTaxa %>% psmelt() %>% ggplot() +
   geom_point(aes(x=Sample, y=OTU, size=O2_uM, color=OTU)) + 
   scale_size_continuous(range = c(0,5)) +

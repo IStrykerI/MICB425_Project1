@@ -15,17 +15,17 @@ date: "`r format(Sys.time(), '%B %d, %Y')`"
 header-includes:
    - \newcommand*{\secref}[1]{Section~\ref{#1}}
 output:
-  pdf_document:
-    toc: yes
-    toc_depth: 3
-    number_sections: yes
-    fig_caption: true
   html_document:
     toc: yes
     toc_depth: 3
     df_print: paged
     toc_float:
       collapsed: no
+  pdf_document:
+    toc: yes
+    toc_depth: 3
+    number_sections: yes
+    fig_caption: true
 mainfont: Times
 fontsize: 11 pt
 editor_options:
@@ -87,7 +87,7 @@ scale_fill_discrete <-  function(palname=pal, ...){
 
 
 ## Data Preporocessing
-We use saanich inlet datasets that are propocssed using mothur and QIIME2
+We use saanich inlet datasets that are propocssed using Mothur and QIIME2
 
 ```{r}
 load("data/mothur_phyloseq.RData")
@@ -119,7 +119,7 @@ secondTaxa = subset_taxa(firstTaxa, Genus %in% basedOnGenus$Genus)
 basedOnphylums <- as.data.frame(tax_table(secondTaxa)) %>% 
   group_by(Phylum) %>% 
   count() %>% 
-  filter( n > 5)
+  filter(n > 5)
 ## In contrary we can run the following:
 # thirdTaxa <- prune_taxa(taxa_sums(secondTaxa) > 5, secondTaxa)
 thirdTaxa <- subset_taxa(secondTaxa, Phylum %in% basedOnphylums$Phylum)
@@ -184,7 +184,7 @@ plot_bar(subTaxa, fill="Genus", facet_grid=~Family) +
     labs(title="Genus distribution of Planctomycetes across samples grouped by family level")
 ```
 
-Finally, we settled on performing experimental analysis at \emph{Planctomyces} genus level and it's associated OTUs.
+Finally, we settled on performing experimental analysis at \emph{Planctomyces} genus level and its associated OTUs.
 ```{r}
 workingTaxa = subset_taxa(thirdTaxa, Genus == "Planctomyces")
 (suggestedOTUs <- colnames(otu_table(workingTaxa)))
