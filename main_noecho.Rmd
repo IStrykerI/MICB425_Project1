@@ -15,15 +15,15 @@ date: "`r format(Sys.time(), '%B %d, %Y')`"
 header-includes:
    - \newcommand*{\secref}[1]{Section~\ref{#1}}
 output:
-  html_document:
-    toc: yes
-    toc_float:
-      collapsed: no
   pdf_document:
     toc: yes
     toc_depth: 3
     number_sections: yes
     fig_caption: true
+  html_document:
+    toc: yes
+    toc_float:
+      collapsed: no
 mainfont: Times
 fontsize: 11 pt
 editor_options:
@@ -35,7 +35,7 @@ bibliography: main.bib
 
 ```{r global_options, include=FALSE}
 knitr::clean_cache(clean = TRUE)
-knitr::opts_chunk$set(fig.width=8, fig.height=6, echo=FALSE, warning=FALSE, include=TRUE, tidy = TRUE, message=FALSE)
+knitr::opts_chunk$set(fig.width=8, fig.height=6, fig.align = "center", echo=FALSE, warning=FALSE, include=TRUE, tidy = TRUE, message=FALSE)
 ```
 
 
@@ -76,6 +76,8 @@ scale_fill_discrete <-  function(palname=pal, ...){
 # Materials and Experimental Configuration
 ## Experimental Protocols
 
+To understand the correlation of microbial diversity and oxygen concentration across samples, we report four experimentally designed test protocols:
+
 **P1.** Analysis of microbial community structure along with depth and oxygen concentration.
 
 **P2.** Analysis of abundance information of Planctomyces along with depth and/or oxygen concentration.
@@ -84,32 +86,25 @@ scale_fill_discrete <-  function(palname=pal, ...){
 
 **P4.** Interpretation of abundance information of OTUs/ASVs of Planctomyces along with depth and/or oxygen concentration.
 
+
 ## Dataset
-## Parameters Configuration
+
+**Talk about mothur and QIIME2**
+
+
 ## Data Preporocessing
 
-We use saanich inlet datasets that are propocssed using Mothur and QIIME2
-
-```{r}
+```{r loading}
 load("data/mothur_phyloseq.RData")
 load("data/qiime2_phyloseq.RData")
-```
-
-Samples are then rarefied/normalized to $100,000$ sequences per sample to facilitate comparisons between samples. A random seed was set to ensure reproducibility.
-```{r}
 set.seed(4832)
 rarefiedM <- rarefy_even_depth(mothur, sample.size=100000)
 rarefiedQ <- rarefy_even_depth(qiime2, sample.size=100000)
-```
-
-Rarefied counts were converted to relative abundance percentages.
-```{r}
 rarefiedMPer = transform_sample_counts(rarefiedM, function(x) 100 * x/sum(x))
 rarefiedQPer = transform_sample_counts(rarefiedQ, function(x) 100 * x/sum(x))
 ```
 
-Next, we perform a series of filterings according to three rules: i)- exclude OTUs that are not observed for more than $4$ samples; ii)- prune samples and OTUs with unknown values, such as ``unclassified`` value; and iii)- any phylum fail to have more than $5$ OTUs should be trimmed. The codes used for applying the three rules are:
-```{r}
+```{r preprocessing}
 # First rule
 firstMTaxa <- filter_taxa(rarefiedMPer, function(x) sum(x == 0) <= 4, TRUE)
 firstQTaxa <- filter_taxa(rarefiedQPer, function(x) sum(x == 0) <= 4, TRUE)
@@ -137,12 +132,15 @@ basedOnphylums <- as.data.frame(tax_table(secondQTaxa)) %>%
 thirdQTaxa <- subset_taxa(secondQTaxa, Phylum %in% basedOnphylums$Phylum)
 ```
 
+We used the Saanich Inlet dataset that was preprocessed using mothur and QIIME2. Afterward, samples were rarefied/normalized to $100,000$ sequences per sample to facilitate comparisons between samples. The rarefied counts were then converted to relative abundance percentages. Next, we perform a series of filterings according to three rules: i)- exclude OTUs that are not observed for more than $4$ samples; ii)- prune samples and OTUs with unknown values, such as ``unclassified`` value; and iii)- any phylum fail to have more than $5$ OTUs should be trimmed. This has resulted in `r ntaxa(thirdMTaxa)` and `r ntaxa(thirdQTaxa)` taxa from mothur and QIIME2, respectively. No other preprocessing were applied.
 
 # Results
 
 ## Analysis of microbial community structure along with depth and oxygen concentration \label{sec:community}
 
-We first estimate the overall taxa diversity using Shannon's diversity index as shown in [Figure 1](#Figure1).
+To understand the compositional complexity of a microbial community across Saanich Inlet samples, we use Shannon's diversity index (SDI), which considers both the species abundances and the total number of distinct species in its diversity estimation. Figures 1(a) and 2(a) depicts Shannon's diversity index for mothur and QIIME2 datasets. Immediately, we observe that SDI values peak at depth $10$ and $100$ before monotonically decreasing at $200$. The SDI values are maximal when the microbes are evenly distributed. Indeed, Figure 3 supports our claim and we see an uneven distribution of Phylum at $200$ more than at $10$ or $100$ depths. However, the Shannon index values do not represent the number of different species or richness varying across depths. Instead, Figure 3 should be used together with Figures 1(a) and 2(a). 
+
+Now, if we analyze the association between oxygen concentration within a microbial community, we observe, as in Figures 1(b) and 2(b), that SDI values increase when oxygen become more abundant. This is not surprising since the abundance of oxygen indicates..... [FILL]. The boxplots in Figures 1(c) and 2(c) supports this evidence too. Another interesting observation that follows the observations in [papers] is the oxygen depletion along the water columns, as illustrated in Figures 1(d) and 2(d). 
 
 ```{r}
 rarefiedMRich <- estimate_richness(rarefiedM, measures = "Shannon")
@@ -158,6 +156,7 @@ p1 <- rarefiedMRichAlpha %>% ggplot() +
 
 p2 <- rarefiedMRichAlpha %>% ggplot() +
   geom_point(aes(x=O2_uM, y=Shannon), size=4, alpha=0.7) +
+  geom_smooth(method='loess', aes(x=as.numeric(O2_uM), y=Shannon)) +
   labs(title="Alpha-diversity across oxygen", 
        y="Shannon's diversity index", x="Oxygen (uM)")
 
@@ -175,11 +174,9 @@ p4 <- rarefiedMRichAlpha %>% ggplot() +
 
 figureM <- ggarrange(p1, p2, p3, p4, ncol = 2, nrow = 2, labels = c("(a)", "(b)", "(c)", "(d)"))
 annotate_figure(figureM, bottom = text_grob("Figure 1: Mothur",
-                                            color = "blue", 
                                             face = "bold", 
                                             size = 12))
 ```
-<a name="Figure1"></a>
 
 
 ```{r}
@@ -187,107 +184,119 @@ rarefiedQRich <- estimate_richness(rarefiedQ, measures = "Shannon")
 rarefiedQRichAlpha <- full_join(rownames_to_column(rarefiedQRich), 
                         rownames_to_column(data.frame(sample_data(rarefiedQPer))), by = "rowname")
 
-p5 <- rarefiedQRichAlpha %>% ggplot() +
+p1 <- rarefiedQRichAlpha %>% ggplot() +
   geom_point(aes(x=Depth_m, y=Shannon), size=4, alpha=0.7) +
   geom_smooth(method='loess', aes(x=as.numeric(Depth_m), y=Shannon)) +
   labs(title="Alpha-diversity across depth", 
        y="Shannon's diversity index", x="Depth (m)")
 
-p6 <- rarefiedQRichAlpha %>% ggplot() +
+p2 <- rarefiedQRichAlpha %>% ggplot() +
   geom_point(aes(x=O2_uM, y=Shannon), size=4, alpha=0.7) +
+  geom_smooth(method='loess', aes(x=as.numeric(O2_uM), y=Shannon)) +
   labs(title="Alpha-diversity across oxygen", 
        y="Shannon's diversity index", x="Oxygen (uM)")
 
-p7 <- rarefiedQRichAlpha %>% 
+p3 <- rarefiedQRichAlpha %>% 
   mutate(O2_group = ifelse(O2_uM == 0, "anoxic", "oxic")) %>% 
   ggplot() + geom_boxplot(aes(x=O2_group, y=Shannon)) +
   labs(title="Alpha-diversity across oxygen", 
        y="Shannon's diversity index", x="Oxygen (uM)")
 
-p8 <- rarefiedQRichAlpha %>% ggplot() +
+p4 <- rarefiedQRichAlpha %>% ggplot() +
   geom_point(aes(x=Depth_m, y=O2_uM), size=4, alpha=0.7) +
   geom_smooth(method='loess', aes(x=as.numeric(Depth_m), y=O2_uM)) +
     labs(title="Oxygen concentration across depth", 
        y="Oxygen  (uM)", x="Depth (m)")
 
-figureQ <- ggarrange(p5, p6, p7, p8, ncol = 2, nrow = 2, labels = c("(a)", "(b)", "(c)", "(d)"))
+figureQ <- ggarrange(p1, p2, p3, p4, ncol = 2, nrow = 2, labels = c("(a)", "(b)", "(c)", "(d)"))
 annotate_figure(figureQ, bottom = text_grob("Figure 2: QIIME2",
-                                            color = "blue", 
                                             face = "bold", 
                                             size = 12))
 ```
 
 
-To understand the number of taxa associated with the Phylum rank, we found that there are around `r get_taxa_unique(physeq = thirdMTaxa, taxonomic.rank = "Phylum")` taxa in mothur in compare to  `r get_taxa_unique(physeq = thirdMTaxa, taxonomic.rank = "Phylum")` taxa in QIIME2.
-
-```{r}
-phylumM <- get_taxa_unique(physeq = thirdMTaxa, taxonomic.rank = "Phylum")
-phylumQ <- get_taxa_unique(physeq = thirdQTaxa, taxonomic.rank = "Phylum")
-phylumMQ <- list(phylumM, phylumQ)
-phylumMQ <- data.frame(sapply(phylumMQ, '[', seq(max(sapply(phylumMQ,length)))))
-colnames(phylumMQ) <- c("Phylums from Mothur","Phylums from QIIME2")
-kable(phylumMQ,caption="Phylums from Mothur vs Phylums from QIIME2")
-```
-
-We choose the \emph{Planctomycetes} phylum, and explored the distribution of genera of this phylum.
-```{r}
-subMTaxa <- subset_taxa(thirdMTaxa, Phylum == "Planctomycetes")
-p9 <- plot_bar(subMTaxa, fill="Genus") + 
-  geom_bar(aes(color = Genus, fill = Genus), stat = 'identity', 
+```{r fig.height=6.5, fig.width=5}
+p1 <- plot_bar(thirdMTaxa, fill="Phylum") + 
+  geom_bar(aes(color = Phylum, fill = Phylum), stat = 'identity', 
            position = 'stack')
 
-annotate_figure(ggarrange(p9, ncol = 1, nrow = 1),
-                bottom = text_grob("Genus distribution of Planctomycetes across samples from mothur", color = "blue", face = "bold", size = 12))
-```
+figureM <- annotate_figure(ggarrange(p1, ncol = 1, nrow = 1),
+                            bottom = text_grob("mothur", 
+                                   color = "blue", 
+                                   face = "bold", 
+                                   size = 12))
 
-
-```{r}
-subQTaxa = subset_taxa(thirdQTaxa, Phylum == "D_1__Planctomycetes")
-p10 <- plot_bar(subQTaxa, fill="Genus") + 
-  geom_bar(aes(color = Genus, fill = Genus), stat = 'identity', 
+p2 <- plot_bar(thirdQTaxa, fill="Phylum") + 
+  geom_bar(aes(color = Phylum, fill = Phylum), stat = 'identity', 
            position = 'stack')
 
-annotate_figure(ggarrange(p10, ncol = 1, nrow = 1),
-                bottom = text_grob("Genus distribution of Planctomycetes across samples from QIIME2", color = "blue", face = "bold", size = 12))
-```
+figureQ <- annotate_figure(ggarrange(p2, ncol = 1, nrow = 1),
+                            bottom = text_grob("QIIME2", color = "blue", 
+                                   face = "bold", size = 12))
 
-We further investigated the genus distribution of this phylum across samples grouped by family level.
-```{r}
-p11 <- plot_bar(subMTaxa, fill="Genus", facet_grid=~Family) + 
-  geom_bar(aes(color = Genus, fill = Genus), stat = 'identity', 
-           position = 'stack')
-
-annotate_figure(ggarrange(p11, ncol = 1, nrow = 1),
-                bottom = text_grob("Genus distribution of Planctomycetes across samples grouped by family level from mothur", color = "blue", face = "bold", size = 12))
-```
-
-
-```{r}
-p12 <- plot_bar(subQTaxa, fill="Genus", facet_grid=~Family) + 
-  geom_bar(aes(color = Genus, fill = Genus), stat = 'identity', 
-           position = 'stack')
-
-annotate_figure(ggarrange(p12, ncol = 1, nrow = 1),
-                bottom = text_grob("Genus distribution of Planctomycetes across samples grouped by family level from QIIME2", color = "blue", face = "bold", size = 12))
-```
-
-Finally, we settled on performing experimental analysis at \emph{Planctomyces} genus level and its associated OTUs.
-```{r}
-workingMTaxa = subset_taxa(thirdMTaxa, Genus == "Planctomyces")
-suggestedMOTUs <- colnames(otu_table(workingMTaxa))
-
-workingQTaxa = subset_taxa(thirdQTaxa, Genus == "D_5__Planctomyces")
-suggestedQOTUs <- rownames(otu_table(workingQTaxa))
-
-suggestedMQOTUs <- list(suggestedMOTUs, suggestedQOTUs)
-suggestedMQOTUs <- data.frame(sapply(suggestedMQOTUs, '[', seq(max(sapply(suggestedMQOTUs,length)))))
-colnames(suggestedMQOTUs) <- c("OTUs from Mothur","ASVs from QIIME2")
-kable(suggestedMQOTUs,caption="OTUs from Mothur vs ASVs from QIIME2")
+annotate_figure(ggarrange(figureM, figureQ, 
+                     ncol = 1, nrow = 2), 
+                bottom = text_grob("Figure 3: Phylum distribution across samples",
+                                   face = "bold", 
+                                   size = 12))
 ```
 
 ## Analysis of abundance information of Planctomyces along with depth and/or oxygen concentration \label{sec:OTUabundance}
 
-```{r}
+
+```{r workingTaxa}
+workingMTaxa = subset_taxa(thirdMTaxa, Genus == "Planctomyces")
+workingQTaxa = subset_taxa(thirdQTaxa, Genus == "D_5__Planctomyces")
+```
+
+```{r phylum}
+phylumM <- get_taxa_unique(physeq = thirdMTaxa, taxonomic.rank = "Phylum")
+phylumQ <- get_taxa_unique(physeq = thirdQTaxa, taxonomic.rank = "Phylum")
+phylumMQ <- list(phylumM, phylumQ)
+phylumMQ <- data.frame(sapply(phylumMQ, '[', seq(max(sapply(phylumMQ,length))))
+                       ,stringsAsFactors=FALSE)
+phylumMQ[is.na(phylumMQ)] <- " "
+colnames(phylumMQ) <- c("Phylums from Mothur","Phylums from QIIME2")
+kable(phylumMQ,caption="Phylums from Mothur vs Phylums from QIIME2")
+```
+
+Figure $3$ provides an instinctive insight into the microbial species and their distributions in Saanich inlet samples based on the phylum rank. The number of hypothetical phyla present in mothur is estimated to be `r length(get_taxa_unique(physeq = thirdMTaxa, taxonomic.rank = "Phylum"))`. Table $1$ summarizes the phyla in both mothur and QIIME2. By in-depth investigation, it is clear that the \emph{Planctomycetes} phylum is differentially presented across samples. And, after further exploring its genus distribution, as depicted in Figure 4, we exhibit that \emph{Planctomyces} genus indeed are unevenly distributed across water columns. We hypothesize that \emph{Planctomyces} would be represented differently across depths, and for this, we performed regression analysis.
+
+```{r fig.height=6.5, fig.width=5}
+subMTaxa <- subset_taxa(thirdMTaxa, Phylum == "Planctomycetes")
+p1 <- plot_bar(subMTaxa, fill="Genus") + 
+  geom_bar(aes(color = Genus, fill = Genus), stat = 'identity', 
+           position = 'stack')
+
+figureM <- annotate_figure(ggarrange(p1, ncol = 1, nrow = 1, 
+                                      widths = 0.7, heights = 0.2),
+                            bottom = text_grob("mothur", 
+                                   color = "blue", 
+                                   face = "bold", 
+                                   size = 12))
+
+subQTaxa = subset_taxa(thirdQTaxa, Phylum == "D_1__Planctomycetes")
+p2 <- plot_bar(subQTaxa, fill="Genus") + 
+  geom_bar(aes(color = Genus, fill = Genus), stat = 'identity', 
+           position = 'stack')
+
+figureQ <- annotate_figure(ggarrange(p2, ncol = 1, nrow = 1, 
+                                      widths = 0.7, heights = 0.2),
+                            bottom = text_grob("QIIME2", color = "blue", 
+                                   face = "bold", size = 12))
+
+annotate_figure(ggarrange(figureM, figureQ, 
+                     ncol = 1, nrow = 2), 
+                bottom = text_grob("Figure 4: Genus distribution of Planctomycetes across samples",
+                                   face = "bold", 
+                                   size = 12))
+```
+
+
+The well known general linear model is employed to recover relationships that might exist between explanatory variables and target variables. We investigate the correlation of \emph{Planctomyces} abundance as a function of depth and as a function of oxygen concentration. The results of this analysis are represented in Table 2. As it can be seen, that no relationships exist with either the depth or the oxyzen. Together the coefficients of depth and oxygen and their P-values were found to be $(-0.0003609,$ P-value $= 0.7385598)$ and $(-0.0002544,$ P-value$=0.7616253)$, respectively. This is of course not statistically significant at $5\%$ (an arbitrary cutoff) since their p-values are above $> 0.05$. Hence, we might reason that there is a little statistical evidence to support our belief that Planctomyces indeed varies across depth and oxygen. This is due to the fitting problem associated with the general linear model that uses simple ordinary least squares to fit the data. The samples from depth $10, 150, 165$ and $200$ do not or are less Planctomyces abundant than at $100, 120$, and $135$ depths, which obviously imply an alternative proposal that Planctomyces is differentially abundant in Saanich Inlet dataset. But for now on, we stick with the statistical outputs.  
+
+
+```{r fig.height=10, fig.width=8}
 otu_stats <- data.frame()
 lmMTaxa1 <- workingMTaxa %>% tax_glom(taxrank = "Genus") %>% psmelt() %>%
   lm(Abundance ~ Depth_m, .) %>% 
@@ -317,66 +326,80 @@ kable(otu_stats,caption="Correlation data of OTUs within Planctomyces genus acro
 ```{r}
 dfworkingMTaxa <- workingMTaxa %>% psmelt() %>% group_by(Sample) %>% 
   summarize(Abundance_sum=sum(Abundance), Depth_m=mean(Depth_m))
-p13 <- ggplot(dfworkingMTaxa) + 
+p1 <- ggplot(dfworkingMTaxa) + 
   geom_point(aes(x=Depth_m, y=Abundance_sum), size=5, alpha=0.7) +
   geom_smooth(method="lm", aes(x=as.numeric(Depth_m), y=Abundance_sum)) +
   labs(title="Abundance of Plantomyces across depth") 
 
 dfworkingMTaxa <- workingMTaxa %>% psmelt() %>% group_by(Sample) %>% 
   summarize(Abundance_sum=sum(Abundance), Oxyzen=mean(O2_uM))
-p14 <- ggplot(dfworkingMTaxa) +
+p2 <- ggplot(dfworkingMTaxa) +
   geom_point(aes(x=Oxyzen, y=Abundance_sum), size=5, alpha=0.7) +
   geom_smooth(method="lm", aes(x=as.numeric(Oxyzen), y=Abundance_sum)) +
   labs(title="Abundance of Plantomyces with respect to oxyzen concentration")
 
 dfworkingQTaxa <- workingQTaxa %>% psmelt() %>% group_by(Sample) %>% 
   summarize(Abundance_sum=sum(Abundance), Depth_m=mean(Depth_m))
-p15 <- ggplot(dfworkingQTaxa) + 
+p3 <- ggplot(dfworkingQTaxa) + 
   geom_point(aes(x=Depth_m, y=Abundance_sum), size=5, alpha=0.7) +
   geom_smooth(method="lm", aes(x=as.numeric(Depth_m), y=Abundance_sum)) +
   labs(title="Abundance of Plantomyces across depth") 
 
 dfworkingQTaxa <- workingQTaxa %>% psmelt() %>% group_by(Sample) %>% 
   summarize(Abundance_sum=sum(Abundance), Oxyzen=mean(O2_uM))
-p16 <- ggplot(dfworkingQTaxa) +
+p4 <- ggplot(dfworkingQTaxa) +
   geom_point(aes(x=Oxyzen, y=Abundance_sum), size=5, alpha=0.7) +
   geom_smooth(method="lm", aes(x=as.numeric(Oxyzen), y=Abundance_sum)) +
   labs(title="Abundance of Plantomyces with respect to oxyzen concentration")
 
-figuredfM <- annotate_figure(ggarrange(p13, p14, ncol = 2, nrow = 1, 
+figureM <- annotate_figure(ggarrange(p1, p2, ncol = 2, nrow = 1, 
                                      labels = c("(a)", "(b)")),
                 bottom = text_grob("mothur", 
                                    color = "blue", face = "bold", size = 12))
 
-figuredfQ <- annotate_figure(ggarrange(p15, p16, ncol = 2, nrow = 1, 
+figureQ <- annotate_figure(ggarrange(p3, p4, ncol = 2, nrow = 1, 
                                      labels = c("(a)", "(b)")),
                 bottom = text_grob("QIIME2", 
                                    color = "blue", face = "bold", size = 12))
-ggarrange(figuredfM,figuredfQ, ncol = 1, nrow = 2)
+
+annotate_figure(ggarrange(figureM, figureQ, 
+                     ncol = 1, nrow = 2), 
+                bottom = text_grob("Figure 5: Regression analysis of Planctomyces across depth",
+                                   face = "bold", 
+                                   size = 12))
 ```
 
 
 ## Estimate richness (number of OTUs/ASVs) for Planctomyces \label{sec:richness}
 
+```{r planctomyces}
+suggestedMOTUs <- colnames(otu_table(workingMTaxa))
+suggestedQOTUs <- rownames(otu_table(workingQTaxa))
+
+suggestedMQOTUs <- list(suggestedMOTUs, suggestedQOTUs)
+suggestedMQOTUs <- data.frame(sapply(suggestedMQOTUs, '[', seq(max(sapply(suggestedMQOTUs,length)))))
+colnames(suggestedMQOTUs) <- c("OTUs from Mothur","ASVs from QIIME2")
+kable(suggestedMQOTUs,caption="OTUs from Mothur vs ASVs from QIIME2")
+```
+
 We explore the diversity of \emph{Planctomyces} across depth.
 
-```{r}
-p17 <- workingMTaxa %>% 
+```{r fig.height=4}
+p1 <- workingMTaxa %>% 
   plot_richness(x="Depth_m", measures = "Shannon") + 
   geom_smooth(method='loess', aes(x=as.numeric(Depth_m))) +
   geom_point(size=5, alpha=0.7) +
   labs(y="Shannon's diversity index", x="Depth (m)")
 
-p18 <- workingQTaxa %>% 
+p2 <- workingQTaxa %>% 
   plot_richness(x="Depth_m", measures = "Shannon") + 
   geom_smooth(method='loess', aes(x=as.numeric(Depth_m))) +
   geom_point(size=5, alpha=0.7) +
   labs(y="Shannon's diversity index", x="Depth (m)")
 
-annotate_figure(ggarrange(p17, p18, ncol = 2, nrow = 1, 
+annotate_figure(ggarrange(p1, p2, ncol = 2, nrow = 1, 
                                      labels = c("(a)", "(b)")),
-                bottom = text_grob("Alpha-diversity of Plantomyces across depth from (a) mothur and (b) QIIME2", 
-                                   color = "blue", face = "bold", size = 12))
+                bottom = text_grob("Figure 6: Alpha-diversity of Plantomyces across depth from (a) mothur and (b) QIIME2", face = "bold", size = 12))
 ```
 
 ## Interpretation of abundance information of OTUs/ASVs of Planctomyces along with depth and/or oxygen concentration \label{sec:ASVabundances}
@@ -411,91 +434,86 @@ pAdjust <- p.adjust(runif(length(suggestedMOTUs), min = 0.005, max = 0.85), meth
 ```
 
 
-```{r}
-# Abundance of OTUs within unclassified domain across depth
-p19 <- workingMTaxa %>% psmelt() %>% ggplot() +
+```{r fig.height=9}
+p1 <- workingMTaxa %>% psmelt() %>% ggplot() +
   geom_point(aes(x=Depth_m, y=Abundance),size=5, alpha=0.7) +
   geom_smooth(method='lm', aes(x=Depth_m, y=Abundance)) +
   facet_wrap(~OTU, scales="free_y") +
   labs(title="Per OTU abundance information")
 
-# Abundance of OTUs within unclassified depth by colour
-p20 <- workingMTaxa %>% psmelt() %>% ggplot() +
+p2 <- workingMTaxa %>% psmelt() %>% ggplot() +
   geom_point(aes(x=Sample, y=OTU, size=Abundance, color=OTU)) + 
   scale_size_continuous(range = c(0,5)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   labs(title="Abundance of OTUs across samples")
 
-annotate_figure(ggarrange(p19, p20, ncol = 2, nrow = 1, 
-                                     labels = c("(a)", "(b)")),
-                bottom = text_grob("Abundance of OTUs within Planctomyces genus across depth from mothur", 
-                                   color = "blue", face = "bold", size = 12))
-```
-
-
-```{r}
-# Abundance of OTUs within unclassified domain across depth
-p21 <- workingQTaxa %>% psmelt() %>% ggplot() +
+p3 <- workingQTaxa %>% psmelt() %>% ggplot() +
   geom_point(aes(x=Depth_m, y=Abundance),size=5, alpha=0.7) +
   geom_smooth(method='lm', aes(x=Depth_m, y=Abundance)) +
   facet_wrap(~OTU, scales="free_y") +
   labs(title="Per ASV abundance information")
 
-# Abundance of ASVs within unclassified depth by colour
-p22 <- workingQTaxa %>% psmelt() %>% ggplot() +
+p4 <- workingQTaxa %>% psmelt() %>% ggplot() +
   geom_point(aes(x=Sample, y=OTU, size=Abundance, color=OTU)) + 
   scale_size_continuous(range = c(0,5)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   labs(title="Abundance of ASVs across samples")
 
-annotate_figure(ggarrange(p21, p22, ncol = 2, nrow = 1, 
+figureM <- annotate_figure(ggarrange(p1, p2, ncol = 2, nrow = 1, 
                                      labels = c("(a)", "(b)")),
-                bottom = text_grob("Abundance of ASVs within Planctomyces genus across depth from mothur", 
+                bottom = text_grob("mothur", 
                                    color = "blue", face = "bold", size = 12))
+
+figureQ <- annotate_figure(ggarrange(p3, p4, ncol = 2, nrow = 1, 
+                                     labels = c("(a)", "(b)")),
+                bottom = text_grob("QIIME2", 
+                                   color = "blue", face = "bold", size = 12))
+
+annotate_figure(ggarrange(figureM, figureQ, ncol = 1, nrow = 2, 
+                                     labels = c("(a)", "(b)")),
+                bottom = text_grob("Figure 7: Abundance of OTUs/ASVs within Planctomyces genus across depth", face = "bold", size = 12))
 ```
 
 
-```{r}
-# Abundance of OTUs within Planctomyces genus across depth
-p23 <- workingMTaxa %>% psmelt() %>% ggplot() +
+```{r fig.height=9}
+p1 <- workingMTaxa %>% psmelt() %>% ggplot() +
   geom_point(aes(x=O2_uM, y=Abundance),size=5, alpha=0.7) +
   geom_smooth(method='lm', aes(x=O2_uM, y=Abundance)) +
   facet_wrap(~OTU, scales="free_y") +
   labs(title="Per OTU abundance information")
 
-# Abundance of OTUs within Planctomyces genus by colour
-p24 <- workingMTaxa %>% psmelt() %>% ggplot() +
+p2 <- workingMTaxa %>% psmelt() %>% ggplot() +
   geom_point(aes(x=Sample, y=OTU, size=O2_uM, color=OTU)) + 
   scale_size_continuous(range = c(0,5)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   labs(title="Abundance of OTUs across samples")
 
-annotate_figure(ggarrange(p23, p24, ncol = 2, nrow = 1, 
-                                     labels = c("(a)", "(b)")),
-                bottom = text_grob("Abundance of OTUs within Planctomyces genus across oxygen concentration from mothur", 
-                                   color = "blue", face = "bold", size = 12))
-```
-
-
-```{r}
-# Abundance of OTUs within unclassified domain across depth
-p25 <- workingQTaxa %>% psmelt() %>% ggplot() +
+p3 <- workingQTaxa %>% psmelt() %>% ggplot() +
   geom_point(aes(x=O2_uM, y=Abundance),size=5, alpha=0.7) +
   geom_smooth(method='lm', aes(x=Depth_m, y=Abundance)) +
   facet_wrap(~OTU, scales="free_y") +
   labs(title="Per ASV abundance information")
 
-# Abundance of ASVs within unclassified depth by colour
-p26 <- workingQTaxa %>% psmelt() %>% ggplot() +
+p4 <- workingQTaxa %>% psmelt() %>% ggplot() +
   geom_point(aes(x=Sample, y=OTU, size=O2_uM, color=OTU)) + 
   scale_size_continuous(range = c(0,5)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   labs(title="Abundance of ASVs across samples")
 
-annotate_figure(ggarrange(p25, p26, ncol = 2, nrow = 1, 
+figureM <- annotate_figure(ggarrange(p1, p2, ncol = 2, nrow = 1, 
                                      labels = c("(a)", "(b)")),
-                bottom = text_grob("Abundance of ASVs within Planctomyces genus across oxygen concentration from QIIME2", 
+                bottom = text_grob("mothur", 
                                    color = "blue", face = "bold", size = 12))
+
+figureQ <- annotate_figure(ggarrange(p3, p4, ncol = 2, nrow = 1, 
+                                     labels = c("(a)", "(b)")),
+                bottom = text_grob("QIIME2", 
+                                   color = "blue", face = "bold", size = 12))
+
+annotate_figure(ggarrange(figureM, figureQ, ncol = 1, nrow = 2, 
+                                     labels = c("(a)", "(b)")),
+                bottom = text_grob("Figure 8: Abundance of OTUs/ASVs within Planctomyces genus across oxygen concentration", 
+                                   face = "bold", size = 12))
 ```
 
 
