@@ -15,15 +15,15 @@ date: "`r format(Sys.time(), '%B %d, %Y')`"
 header-includes:
    - \newcommand*{\secref}[1]{Section~\ref{#1}}
 output:
+  html_document:
+    toc: yes
+    toc_float:
+      collapsed: no
   pdf_document:
     toc: yes
     toc_depth: 3
     number_sections: yes
     fig_caption: true
-  html_document:
-    toc: yes
-    toc_float:
-      collapsed: no
 mainfont: Times
 fontsize: 11 pt
 editor_options:
@@ -71,7 +71,20 @@ scale_fill_discrete <-  function(palname=pal, ...){
 * * *
 # Introduction
 
+[Talk about microbial community deriving the most biogeochemical forces with citations]. The wide diversity of microbes present in the different ecosystem implies that an almost infinite number of individuals needs to be identified to accurately describe such communities. Nevertheless, the advancements in analyzing high-throughput marker-gene sequencing data made it feasible to construct molecular operational taxonomic units (OTUs) through clustering the sequencing reads using a variety of dissimilarity distance methods [@Chen2013:comparison]. Another compelling approach to cluster group of reads is based on amplicon sequence variants (ASVs) [@Callahan2017:exact]. 
+
+We resort to studying microbial composition obtained from Saanich Inlet oxygen minimum zone (OMZ). Saanich Inlet is a seasonally anoxic fjord on the coast of Vancouver Island, British Columbia, Canada [@Hawley2017:compendium;Torres2017:compendium]. Most of the year, the fjord has an anoxic basin. At the end of summer, oxic waters flow into the basin, resulting in renewing the oxygen. From an OMZ research perspective, the Saanich Inlet is considered important as it provides an opportunity to study microbial ecology and various nutrient cycling in OMZs  particularly under oxic-anoxic shifts [@Hallam2017:monitoring] [You might add additional information]
+
+Planctomyces is .... [Why did you choose this genus why is it important to study?]
+
+To this end, we examined microbial diversity in Saanich Inlet dataset that was preprocess using mothur[@Schloss2009:introducing] and QIIME2[I didn't find citation]. While mothur uses [Talk about OTU here], QIIME2 produces ASVs [give a brief description about ASVs]. [Talk about differences between these two methods].
+
+We further address the planctomyces diversity correlation with oxygen and depth. We show that under the statistical framework there is little evidence to support our initial hypothesis. However, we claim that the linear model was not adequate to provide insightful knowledge regarding the existence of such correlations.
+
+The remaining of the paper is organized as follows. Section 2 describes the problem statements. Followed by [FILL] in Section 3. Finally, we summarize our contributions in Section 4.
+
 # Problem Formulation
+[Talk in depth about Planctomyces]
 
 # Materials and Experimental Configuration
 ## Experimental Protocols
@@ -88,8 +101,7 @@ To understand the correlation of microbial diversity and oxygen concentration ac
 
 
 ## Dataset
-
-**Talk about mothur and QIIME2**
+[Talk about Saanich Inlet dataset and various properties as documented in [@Hawley2017:compendium;@Torres2017:compendium]]
 
 
 ## Data Preporocessing
@@ -132,15 +144,17 @@ basedOnphylums <- as.data.frame(tax_table(secondQTaxa)) %>%
 thirdQTaxa <- subset_taxa(secondQTaxa, Phylum %in% basedOnphylums$Phylum)
 ```
 
-We used the Saanich Inlet dataset that was preprocessed using mothur and QIIME2. Afterward, samples were rarefied/normalized to $100,000$ sequences per sample to facilitate comparisons between samples. The rarefied counts were then converted to relative abundance percentages. Next, we perform a series of filterings according to three rules: i)- exclude OTUs that are not observed for more than $4$ samples; ii)- prune samples and OTUs with unknown values, such as ``unclassified`` value; and iii)- any phylum fail to have more than $5$ OTUs should be trimmed. This has resulted in `r ntaxa(thirdMTaxa)` and `r ntaxa(thirdQTaxa)` taxa from mothur and QIIME2, respectively. No other preprocessing were applied.
+We used the Saanich Inlet dataset that was preprocessed using mothur and QIIME2. Afterward, samples were rarefied/normalized to $100,000$ sequences per sample to facilitate comparisons between samples. The rarefied counts were then converted to relative abundance percentages. Next, we perform a series of filterings according to three rules: i)- exclude OTUs that are not observed for more than $4$ samples; ii)- prune samples and OTUs with unknown values, such as ``unclassified`` value; and iii)- any phylum fail to have more than $5$ OTUs should be trimmed. This has resulted in `r ntaxa(thirdMTaxa)` and `r ntaxa(thirdQTaxa)` taxa from mothur and QIIME2, respectively. No other preprocessing were applied. The implementations are done entirely using R and relied on some efficient third-party libraries, such as ``phyloseq`` and ``tidyverse``. 
 
 # Results
 
 ## Analysis of microbial community structure along with depth and oxygen concentration \label{sec:community}
 
-To understand the compositional complexity of a microbial community across Saanich Inlet samples, we use Shannon's diversity index (SDI), which considers both the species abundances and the total number of distinct species in its diversity estimation. Figures 1(a) and 2(a) depicts Shannon's diversity index for mothur and QIIME2 datasets. Immediately, we observe that SDI values peak at depth $10$ and $100$ before monotonically decreasing at $200$. The SDI values are maximal when the microbes are evenly distributed. Indeed, Figure 3 supports our claim and we see an uneven distribution of Phylum at $200$ more than at $10$ or $100$ depths. However, the Shannon index values do not represent the number of different species or richness varying across depths. Instead, Figure 3 should be used together with Figures 1(a) and 2(a). 
+Motivated by the recent report [@Breitburg2018:declining] regarding the oxygen depletion in the global in the global ocean, we analyze [the contribution of microbes and their existence along .... Fill]. Hereby, we try to understand the compositional complexity of a microbial community across Saanich Inlet samples. For this, we use Shannon's diversity index (SDI), which considers both the species abundances and the total number of distinct species in its diversity estimation. Figures 1(a) and 2(a) depicts Shannon's diversity index for mothur and QIIME2 datasets. Immediately, we observe that SDI values peak at depth $10$ and $100$ before monotonically decreasing at $200$. The SDI values are maximal when the microbes are evenly distributed. Indeed, Figure 3 supports our claim, and we see an uneven distribution of Phylum at $200$ more than at $10$ or $100$ depths. However, the Shannon index values do not capture the number of different species or richness varying across depths. Instead, Figures 1(a) and 2(a) shed some light in this regard. 
 
-Now, if we analyze the association between oxygen concentration within a microbial community, we observe, as in Figures 1(b) and 2(b), that SDI values increase when oxygen become more abundant. This is not surprising since the abundance of oxygen indicates..... [FILL]. The boxplots in Figures 1(c) and 2(c) supports this evidence too. Another interesting observation that follows the observations in [papers] is the oxygen depletion along the water columns, as illustrated in Figures 1(d) and 2(d). 
+Similarly, by analyzing the association between oxygen concentration within a microbial community, we observe, as in Figures 1(b) and 2(b), that SDI values increase when oxygen become more abundant. This is not surprising since the abundance of oxygen indicates..... [FILL]. The boxplots in Figures 1(c) and 2(c) supports this evidence too. Another compleing observation that follows the work in [@Breitburg2018:declining;Hawley2017:compendium] is the oxygen depletion along the water columns, as illustrated in Figures 1(d) and 2(d). 
+
+[ADD and EDIT]
 
 ```{r}
 rarefiedMRich <- estimate_richness(rarefiedM, measures = "Shannon")
@@ -260,7 +274,7 @@ colnames(phylumMQ) <- c("Phylums from Mothur","Phylums from QIIME2")
 kable(phylumMQ,caption="Phylums from Mothur vs Phylums from QIIME2")
 ```
 
-Figure $3$ provides an instinctive insight into the microbial species and their distributions in Saanich inlet samples based on the phylum rank. The number of hypothetical phyla present in mothur is estimated to be `r length(get_taxa_unique(physeq = thirdMTaxa, taxonomic.rank = "Phylum"))`. Table $1$ summarizes the phyla in both mothur and QIIME2. By in-depth investigation, it is clear that the \emph{Planctomycetes} phylum is differentially presented across samples. And, after further exploring its genus distribution, as depicted in Figure 4, we exhibit that \emph{Planctomyces} genus indeed are unevenly distributed across water columns. We hypothesize that \emph{Planctomyces} would be represented differently across depths, and for this, we performed regression analysis.
+Based on our previous analysis and from Figure $3$, it is clear that the microbial species and their distributions in Saanich inlet samples do indeed vary. Table $1$ summarizes the phyla in both mothur and QIIME2 for Saanich Inlet dataset. We see that the number of hypothetical phyla present in mothur is estimated to be `r length(get_taxa_unique(physeq = thirdMTaxa, taxonomic.rank = "Phylum"))`. Throught intesive investigation, we find that the \emph{Planctomycetes} phylum is differentially presented across samples. And, after further exploring its genus distribution, as depicted in Figure 4, we exhibit that \emph{Planctomyces} genus indeed are unevenly distributed across water columns. This is not coincidence because the [Fill based on some paper]. We intitally hypothesize that \emph{Planctomyces} would be represented differently across depths, and for this, we performed regression tests.
 
 ```{r fig.height=6.5, fig.width=5}
 subMTaxa <- subset_taxa(thirdMTaxa, Phylum == "Planctomycetes")
@@ -293,8 +307,13 @@ annotate_figure(ggarrange(figureM, figureQ,
 ```
 
 
-The well known general linear model is employed to recover relationships that might exist between explanatory variables and target variables. We investigate the correlation of \emph{Planctomyces} abundance as a function of depth and as a function of oxygen concentration. The results of this analysis are represented in Table 2. As it can be seen, that no relationships exist with either the depth or the oxyzen. Together the coefficients of depth and oxygen and their P-values were found to be $(-0.0003609,$ P-value $= 0.7385598)$ and $(-0.0002544,$ P-value$=0.7616253)$, respectively. This is of course not statistically significant at $5\%$ (an arbitrary cutoff) since their p-values are above $> 0.05$. Hence, we might reason that there is a little statistical evidence to support our belief that Planctomyces indeed varies across depth and oxygen. This is due to the fitting problem associated with the general linear model that uses simple ordinary least squares to fit the data. The samples from depth $10, 150, 165$ and $200$ do not or are less Planctomyces abundant than at $100, 120$, and $135$ depths, which obviously imply an alternative proposal that Planctomyces is differentially abundant in Saanich Inlet dataset. But for now on, we stick with the statistical outputs.  
+The well known general linear model is employed to recover relationships that might be exhibited between explanatory and target variables. We decompose our hypothesize in a series of experimental tests: i)- first, we investigate the correlation of Planctomyces abundance as a function of depth; and ii)- then, we cross-examine the Planctomyces abundance as a function of oxygen concentration. 
 
+Table 2. shows the results of our test analysis. From the statistical perspective, it can be inferred that there might be no relations with either the depth or the oxyzen. This is becasue the coefficients of depth and oxygen and their p-values were found to be $(-0.0003609,$ p-value $= 0.7385598)$ and $(-0.0002544,$ p-value$=0.7616253)$, respectively, which are not statistically significant at $5\%$ (an arbitrary cutoff). Hence, we might reason that there is a little statistical evidence to support our belief that Planctomyces indeed varies across depth and oxygen. 
+
+Such contradictory conclusion suggests to accept the null hyptothesis that states no intersting patterns exist for Planctomyces. However, the fitting problem associated with the general linear model underestimate the existence of any kind of interesting relationships. Indeed, when we manually inspected the samples, we found that samples from depth $10, 150, 165$ and $200$ do not or are less planctomyces abundant than at $100, 120$, and $135$ depths, which imply that Planctomyces is quite differentially abundant in Saanich Inlet dataset. Perhaps, using more complex models might provide a better predictive analysis; but for now on, we stick with the statistical outputs.  
+
+[WRITE and EDIT]
 
 ```{r fig.height=10, fig.width=8}
 otu_stats <- data.frame()
@@ -382,7 +401,10 @@ colnames(suggestedMQOTUs) <- c("OTUs from Mothur","ASVs from QIIME2")
 kable(suggestedMQOTUs,caption="OTUs from Mothur vs ASVs from QIIME2")
 ```
 
-We explore the diversity of \emph{Planctomyces} across depth.
+We explore the diversity of \emph{Planctomyces} across depth. 
+
+[SIMILAR to BOTH PARTS WRITE and EDIT; Consider the abundance information in describing the correlations and shannons diveristy index]
+
 
 ```{r fig.height=4}
 p1 <- workingMTaxa %>% 
@@ -518,8 +540,6 @@ annotate_figure(ggarrange(figureM, figureQ, ncol = 1, nrow = 2,
 
 
 # Discussion
-
-[@Hawley2017:compendium;@Torres2017:compendium]
 
 ---
 
