@@ -103,6 +103,33 @@ To understand the correlation of microbial diversity and oxygen concentration ac
 ## Dataset
 [Talk about Saanich Inlet dataset and various properties as documented in [@Hawley2017:compendium;@Torres2017:compendium]]
 
+## Methods
+
+### Shannon Diversity Index (SDI) and Chao1
+We applied _Shannon diversity index (SDI)_ to estimate the microbial diversity of  Saanich Inlet dataset. It has the following definition: 
+
+$SDI = -\sum_i^R p_i \log(p_i)$
+
+where $p_i$ represents the distribution of individuals belonging to the $i$th species, and $R$ represents the number of distinct species [@Finotello2016:measuring]. It can be noted that SDI takes both the richness and abundance information to measure the expected uncertainty about species contained in a sample. The high SDI value suggests that species are evenly distributed while low  SDI value implies species are disproportionality situated. SDI value could be zero meaning the sample contains exactly one or no species at all. However, SDI does not directly model the expected richness of a sample and, neither, it represents an accurate estimation of species diversity because the probability distribution of species is not knowable exactly; it is only an estimate from a sample.
+
+In contrast to SDI, _Chao1_ could be used to recover approximate true richness:
+
+$Chao1=S_{obs}+\frac{\alpha}{2\beta}$
+
+where $S_{obs}$ represents the observed richness, $\alpha$ and $\beta$ indicates the number of different species with exactly one or more than two counts, respectively. The Chao1 method is used to rectify the richness by including the distribution of the rarest species [@Finotello2016:measuring].
+
+### General Linear Model
+
+General linear model (LM) [@Hastie2009:elements] is employed to recover interactions between several factors that might be exhibited in Saanich Inlet dataset. In our experiments, we use a single regression model that relates a dependent variable $y$ (abundance) to a single quantitative independent variable $x_1$ (depth or oxygen), and it has the following form:
+
+$y=\theta_0+\theta_1x_1+\epsilon$
+
+The parameter $\theta_0$ is the $y$-intercept, which represents the expected value of $y$ when $x_1$ is zero. The parameter $\theta_1$ is the slope of the regression line, and it represents the expected change (positive or negative) in $y$ (abundance) for a unit increase in $x_1$ (depth or oxygen). $\theta_1$ could be $0$ indicating no effective change with $x_1$. And, $\epsilon$ is the error term and is usually set to $0$.
+
+All the parameters could be estimated using ordinary least squares (OLS). However, to test the significance $\theta_1$, we formulate hypothesis testing: i)- the null hypothesis $H_0:\theta_1>\gamma$, which asserts that no additional predictive value over and above, contributed by $\theta_1$ and the $\gamma$ is an arbitrary cutoff probability from t-student distribution ; ii)- the alternative hypothesis $H_1: \theta_1\leq \gamma$ measures whether $x_j$ has additional predictive strengths.
+
+If the weight of $\theta_1$, referred to as the level of significance (or $p$-value) and defines as a probability, is below or equal to $\gamma$ then we accept $H_1$; otherwise, accept $H_0$.
+
 
 ## Data Preporocessing
 
@@ -144,7 +171,7 @@ basedOnphylums <- as.data.frame(tax_table(secondQTaxa)) %>%
 thirdQTaxa <- subset_taxa(secondQTaxa, Phylum %in% basedOnphylums$Phylum)
 ```
 
-We used the Saanich Inlet dataset that was preprocessed using mothur and QIIME2. Afterward, samples were rarefied/normalized to $100,000$ sequences per sample to facilitate comparisons between samples. The rarefied counts were then converted to relative abundance percentages. Next, we perform a series of filterings according to three rules: i)- exclude OTUs that are not observed for more than $4$ samples; ii)- prune samples and OTUs with unknown values, such as ``unclassified`` value; and iii)- any phylum fail to have more than $5$ OTUs should be trimmed. This has resulted in `r ntaxa(thirdMTaxa)` and `r ntaxa(thirdQTaxa)` taxa from mothur and QIIME2, respectively. No other preprocessing were applied. The implementations are done entirely using R and relied on some efficient third-party libraries, such as ``phyloseq`` and ``tidyverse``. 
+The samples were rarefied/normalized to $100,000$ sequences per sample to facilitate comparisons between samples. The rarefied counts were then converted to relative abundance percentages. Next, we perform a series of filterings according to three rules: i)- exclude OTUs that are not observed for more than $4$ samples; ii)- prune samples and OTUs with unknown values, such as ``unclassified`` value; and iii)- any phylum fail to have more than $5$ OTUs should be trimmed. This has resulted in `r ntaxa(thirdMTaxa)` and `r ntaxa(thirdQTaxa)` taxa from mothur and QIIME2, respectively. No other preprocessing were applied. The implementations are done entirely using R (v 3.4.3) and relied on some efficient third-party libraries, such as ``phyloseq``, ``tidyverse``, ``gridExtra``, and ``magrittr``.
 
 # Results
 
@@ -406,23 +433,6 @@ We explore the diversity of \emph{Planctomyces} across depth.
 [SIMILAR to BOTH PARTS WRITE and EDIT; Consider the abundance information in describing the correlations and shannons diveristy index]
 
 
-```{r fig.height=4}
-p1 <- workingMTaxa %>% 
-  plot_richness(x="Depth_m", measures = "Shannon") + 
-  geom_smooth(method='loess', aes(x=as.numeric(Depth_m))) +
-  geom_point(size=5, alpha=0.7) +
-  labs(y="Shannon's diversity index", x="Depth (m)")
-
-p2 <- workingQTaxa %>% 
-  plot_richness(x="Depth_m", measures = "Shannon") + 
-  geom_smooth(method='loess', aes(x=as.numeric(Depth_m))) +
-  geom_point(size=5, alpha=0.7) +
-  labs(y="Shannon's diversity index", x="Depth (m)")
-
-annotate_figure(ggarrange(p1, p2, ncol = 2, nrow = 1, 
-                                     labels = c("(a)", "(b)")),
-                bottom = text_grob("Figure 6: Alpha-diversity of Plantomyces across depth from (a) mothur and (b) QIIME2", face = "bold", size = 12))
-```
 
 ## Interpretation of abundance information of OTUs/ASVs of Planctomyces along with depth and/or oxygen concentration \label{sec:ASVabundances}
 
@@ -453,6 +463,34 @@ colnames(otu_stats)<- c("Covariates", "Estimate", "Std. Error","t-value","Pr(>|t
 
 kable(otu_stats,caption="Correlation data of OTUs within Planctomyces genus across depth")
 pAdjust <- p.adjust(runif(length(suggestedMOTUs), min = 0.005, max = 0.85), method = "fdr")
+```
+
+```{r}
+otu_stats <- data.frame()
+
+for (otu in suggestedMOTUs){
+  linear_fit <- workingMTaxa %>% 
+    psmelt() %>% 
+    filter(OTU==otu) %>% 
+    lm(Abundance ~ O2_uM, .) %>% 
+    summary()
+  otu_stats <- rbind(otu_stats, linear_fit$coefficients["O2_uM",])
+}
+tmpNames <- paste(suggestedMOTUs," (mothur) ")
+
+for (otu in suggestedQOTUs){
+  linear_fit <- workingQTaxa %>% 
+    psmelt() %>% 
+    filter(OTU==otu) %>% 
+    lm(Abundance ~ O2_uM, .) %>% 
+    summary()
+  otu_stats <- rbind(otu_stats, linear_fit$coefficients["O2_uM",])
+}
+tmpNames <- c(tmpNames, paste(suggestedQOTUs," (QIIME2) "))
+otu_stats <- cbind(tmpNames, otu_stats)
+colnames(otu_stats)<- c("Covariates", "Estimate", "Std. Error","t-value","Pr(>|t|)")
+
+kable(otu_stats,caption="Correlation data of OTUs within Planctomyces genus across oxygen concentration")
 ```
 
 
@@ -493,7 +531,7 @@ figureQ <- annotate_figure(ggarrange(p3, p4, ncol = 2, nrow = 1,
 
 annotate_figure(ggarrange(figureM, figureQ, ncol = 1, nrow = 2, 
                                      labels = c("(a)", "(b)")),
-                bottom = text_grob("Figure 7: Abundance of OTUs/ASVs within Planctomyces genus across depth", face = "bold", size = 12))
+                bottom = text_grob("Figure 6: Abundance of OTUs/ASVs within Planctomyces genus across depth", face = "bold", size = 12))
 ```
 
 
@@ -534,7 +572,7 @@ figureQ <- annotate_figure(ggarrange(p3, p4, ncol = 2, nrow = 1,
 
 annotate_figure(ggarrange(figureM, figureQ, ncol = 1, nrow = 2, 
                                      labels = c("(a)", "(b)")),
-                bottom = text_grob("Figure 8: Abundance of OTUs/ASVs within Planctomyces genus across oxygen concentration", 
+                bottom = text_grob("Figure 7: Abundance of OTUs/ASVs within Planctomyces genus across oxygen concentration", 
                                    face = "bold", size = 12))
 ```
 
