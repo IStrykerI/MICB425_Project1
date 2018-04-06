@@ -15,15 +15,15 @@ date: "`r format(Sys.time(), '%B %d, %Y')`"
 header-includes:
    - \newcommand*{\secref}[1]{Section~\ref{#1}}
 output:
-  html_document:
-    toc: yes
-    toc_float:
-      collapsed: no
   pdf_document:
     toc: yes
     toc_depth: 3
     number_sections: yes
     fig_caption: true
+  html_document:
+    toc: yes
+    toc_float:
+      collapsed: no
 mainfont: Times
 fontsize: 11 pt
 editor_options:
@@ -47,6 +47,8 @@ library("tidyverse")
 library("gridExtra")
 library("magrittr")
 library("ggpubr")
+library("RColorBrewer")
+
 ```
 
 
@@ -58,15 +60,16 @@ library("gridExtra")
 library("magrittr")
 library("ggpubr")
 library("knitr")
+library("RColorBrewer")
 
-theme_set(theme_bw())
-pal = "Set1"
-scale_colour_discrete <-  function(palname=pal, ...){
-  scale_colour_brewer(palette=palname, ...)
-}
-scale_fill_discrete <-  function(palname=pal, ...){
-  scale_fill_brewer(palette=palname, ...)
-}
+# theme_set(theme_bw())
+# pal = "Set1"
+# scale_colour_discrete <-  function(palname=pal, ...){
+#   scale_colour_brewer(palette=palname, ...)
+# }
+# scale_fill_discrete <-  function(palname=pal, ...){
+#   scale_fill_brewer(palette=palname, ...)
+# }
 ```
 * * *
 # Introduction
@@ -156,22 +159,9 @@ secondMTaxa = subset_taxa(firstMTaxa, Genus %in% basedOnGenus$Genus)
 basedOnGenus <- as.data.frame(tax_table(firstQTaxa)) %>%
   filter(!str_detect(Genus, 'uncultured|unclassified|\\bD_5__\\b'))
 secondQTaxa <- subset_taxa(firstQTaxa, Genus %in% basedOnGenus$Genus)
-
-# Third rule
-basedOnphylums <- as.data.frame(tax_table(secondMTaxa)) %>% 
-  group_by(Phylum) %>% 
-  count() %>% 
-  filter(n > 5)
-thirdMTaxa <- subset_taxa(secondMTaxa, Phylum %in% basedOnphylums$Phylum)
-
-basedOnphylums <- as.data.frame(tax_table(secondQTaxa)) %>% 
-  group_by(Phylum) %>% 
-  count() %>% 
-  filter(n > 5)
-thirdQTaxa <- subset_taxa(secondQTaxa, Phylum %in% basedOnphylums$Phylum)
 ```
 
-The samples were rarefied/normalized to $100,000$ sequences per sample to facilitate comparisons between samples. The rarefied counts were then converted to relative abundance percentages. Next, we perform a series of filterings according to three rules: i)- exclude OTUs that are not observed for more than $4$ samples; ii)- prune samples and OTUs with unknown values, such as ``unclassified`` value; and iii)- any phylum fail to have more than $5$ OTUs should be trimmed. This has resulted in `r ntaxa(thirdMTaxa)` and `r ntaxa(thirdQTaxa)` taxa from mothur and QIIME2, respectively. No other preprocessing were applied. The implementations are done entirely using R (v 3.4.3) and relied on some efficient third-party libraries, such as ``phyloseq``, ``tidyverse``, ``gridExtra``, and ``magrittr``.
+The samples were rarefied/normalized to $100,000$ sequences per sample to facilitate comparisons between samples. The rarefied counts were then converted to relative abundance percentages. Next, we perform a series of filterings according to three rules: i)- exclude OTUs that are not observed for more than $4$ samples, and ii)- prune samples and OTUs with unknown values, such as ``unclassified`` value. This has resulted in `r ntaxa(secondMTaxa)` and `r ntaxa(secondQTaxa)` taxa from mothur and QIIME2, respectively. No other preprocessing were applied. The implementations are done entirely using R (v 3.4.3) and relied on some efficient third-party libraries, such as ``phyloseq``, ``tidyverse``, ``gridExtra``, and ``magrittr``.
 
 # Results
 
@@ -256,43 +246,47 @@ annotate_figure(figureQ, bottom = text_grob("Figure 2: QIIME2",
 ```
 
 
-```{r fig.height=6.5, fig.width=5}
-p1 <- plot_bar(thirdMTaxa, fill="Phylum") + 
-  geom_bar(aes(color = Phylum, fill = Phylum), stat = 'identity', 
-           position = 'stack')
+```{r fig.width=8}
+colourCount <- length(unique(tax_table(secondMTaxa)[, "Phylum"]))
 
-figureM <- annotate_figure(ggarrange(p1, ncol = 1, nrow = 1),
-                            bottom = text_grob("mothur", 
+p1 <- plot_bar(secondMTaxa, fill="Phylum") + 
+  geom_bar(aes(color = Phylum, fill = Phylum), stat = 'identity', 
+           position = 'stack') +
+  scale_fill_manual(values = colorRampPalette(brewer.pal(8,
+                                                       "Accent"))(colourCount))
+
+annotate_figure(ggarrange(p1, ncol = 1, nrow = 1),
+                            bottom = text_grob("Figure 3: Phylum distribution across samples from mothur", 
                                    color = "blue", 
                                    face = "bold", 
                                    size = 12))
+```
 
-p2 <- plot_bar(thirdQTaxa, fill="Phylum") + 
+```{r fig.width=8}
+colourCount <- length(unique(tax_table(secondQTaxa)[, "Phylum"]))
+
+p2 <- plot_bar(secondQTaxa, fill="Phylum") + 
   geom_bar(aes(color = Phylum, fill = Phylum), stat = 'identity', 
-           position = 'stack')
+           position = 'stack')+
+  scale_fill_manual(values = colorRampPalette(brewer.pal(8,
+                                                       "Accent"))(colourCount))
 
-figureQ <- annotate_figure(ggarrange(p2, ncol = 1, nrow = 1),
-                            bottom = text_grob("QIIME2", color = "blue", 
+annotate_figure(ggarrange(p2, ncol = 1, nrow = 1),
+                            bottom = text_grob("Figure 4: Phylum distribution across samples from QIIME2", color = "blue", 
                                    face = "bold", size = 12))
-
-annotate_figure(ggarrange(figureM, figureQ, 
-                     ncol = 1, nrow = 2), 
-                bottom = text_grob("Figure 3: Phylum distribution across samples",
-                                   face = "bold", 
-                                   size = 12))
 ```
 
 ## Analysis of abundance information of Planctomyces along with depth and/or oxygen concentration \label{sec:OTUabundance}
 
 
 ```{r workingTaxa}
-workingMTaxa = subset_taxa(thirdMTaxa, Genus == "Planctomyces")
-workingQTaxa = subset_taxa(thirdQTaxa, Genus == "D_5__Planctomyces")
+workingMTaxa = subset_taxa(secondMTaxa, Genus == "Planctomyces")
+workingQTaxa = subset_taxa(secondQTaxa, Genus == "D_5__Planctomyces")
 ```
 
 ```{r phylum}
-phylumM <- get_taxa_unique(physeq = thirdMTaxa, taxonomic.rank = "Phylum")
-phylumQ <- get_taxa_unique(physeq = thirdQTaxa, taxonomic.rank = "Phylum")
+phylumM <- get_taxa_unique(physeq = secondMTaxa, taxonomic.rank = "Phylum")
+phylumQ <- get_taxa_unique(physeq = secondQTaxa, taxonomic.rank = "Phylum")
 phylumMQ <- list(phylumM, phylumQ)
 phylumMQ <- data.frame(sapply(phylumMQ, '[', seq(max(sapply(phylumMQ,length))))
                        ,stringsAsFactors=FALSE)
@@ -301,10 +295,10 @@ colnames(phylumMQ) <- c("Phylums from Mothur","Phylums from QIIME2")
 kable(phylumMQ,caption="Phylums from Mothur vs Phylums from QIIME2")
 ```
 
-Based on our previous analysis and from Figure $3$, it is clear that the microbial species and their distributions in Saanich inlet samples do indeed vary. Table $1$ summarizes the phyla in both mothur and QIIME2 for Saanich Inlet dataset. We see that the number of hypothetical phyla present in mothur is estimated to be `r length(get_taxa_unique(physeq = thirdMTaxa, taxonomic.rank = "Phylum"))`. Throught intesive investigation, we find that the \emph{Planctomycetes} phylum is differentially presented across samples. And, after further exploring its genus distribution, as depicted in Figure 4, we exhibit that \emph{Planctomyces} genus indeed are unevenly distributed across water columns. This is not coincidence because the [Fill based on some paper]. We intitally hypothesize that \emph{Planctomyces} would be represented differently across depths, and for this, we performed regression tests.
+Based on our previous analysis and from Figure $3$, it is clear that the microbial species and their distributions in Saanich inlet samples do indeed vary. Table $1$ summarizes the phyla in both mothur and QIIME2 for Saanich Inlet dataset. We see that the number of hypothetical phyla present in mothur is estimated to be `r length(get_taxa_unique(physeq = secondMTaxa, taxonomic.rank = "Phylum"))`. Throught intesive investigation, we find that the \emph{Planctomycetes} phylum is differentially presented across samples. And, after further exploring its genus distribution, as depicted in Figure 4, we exhibit that \emph{Planctomyces} genus indeed are unevenly distributed across water columns. This is not coincidence because the [Fill based on some paper]. We intitally hypothesize that \emph{Planctomyces} would be represented differently across depths, and for this, we performed regression tests.
 
 ```{r fig.height=6.5, fig.width=5}
-subMTaxa <- subset_taxa(thirdMTaxa, Phylum == "Planctomycetes")
+subMTaxa <- subset_taxa(secondMTaxa, Phylum == "Planctomycetes")
 p1 <- plot_bar(subMTaxa, fill="Genus") + 
   geom_bar(aes(color = Genus, fill = Genus), stat = 'identity', 
            position = 'stack')
@@ -316,7 +310,7 @@ figureM <- annotate_figure(ggarrange(p1, ncol = 1, nrow = 1,
                                    face = "bold", 
                                    size = 12))
 
-subQTaxa = subset_taxa(thirdQTaxa, Phylum == "D_1__Planctomycetes")
+subQTaxa = subset_taxa(secondQTaxa, Phylum == "D_1__Planctomycetes")
 p2 <- plot_bar(subQTaxa, fill="Genus") + 
   geom_bar(aes(color = Genus, fill = Genus), stat = 'identity', 
            position = 'stack')
@@ -328,7 +322,7 @@ figureQ <- annotate_figure(ggarrange(p2, ncol = 1, nrow = 1,
 
 annotate_figure(ggarrange(figureM, figureQ, 
                      ncol = 1, nrow = 2), 
-                bottom = text_grob("Figure 4: Genus distribution of Planctomycetes across samples",
+                bottom = text_grob("Figure 5: Genus distribution of Planctomycetes across samples",
                                    face = "bold", 
                                    size = 12))
 ```
@@ -410,7 +404,7 @@ figureQ <- annotate_figure(ggarrange(p3, p4, ncol = 2, nrow = 1,
 
 annotate_figure(ggarrange(figureM, figureQ, 
                      ncol = 1, nrow = 2), 
-                bottom = text_grob("Figure 5: Regression analysis of Planctomyces across depth",
+                bottom = text_grob("Figure 6: Regression analysis of Planctomyces across depth",
                                    face = "bold", 
                                    size = 12))
 ```
@@ -462,7 +456,6 @@ otu_stats <- cbind(tmpNames, otu_stats)
 colnames(otu_stats)<- c("Covariates", "Estimate", "Std. Error","t-value","Pr(>|t|)")
 
 kable(otu_stats,caption="Correlation data of OTUs within Planctomyces genus across depth")
-pAdjust <- p.adjust(runif(length(suggestedMOTUs), min = 0.005, max = 0.85), method = "fdr")
 ```
 
 ```{r}
@@ -531,7 +524,7 @@ figureQ <- annotate_figure(ggarrange(p3, p4, ncol = 2, nrow = 1,
 
 annotate_figure(ggarrange(figureM, figureQ, ncol = 1, nrow = 2, 
                                      labels = c("(a)", "(b)")),
-                bottom = text_grob("Figure 6: Abundance of OTUs/ASVs within Planctomyces genus across depth", face = "bold", size = 12))
+                bottom = text_grob("Figure 7: Abundance of OTUs/ASVs within Planctomyces genus across depth", face = "bold", size = 12))
 ```
 
 
@@ -572,7 +565,7 @@ figureQ <- annotate_figure(ggarrange(p3, p4, ncol = 2, nrow = 1,
 
 annotate_figure(ggarrange(figureM, figureQ, ncol = 1, nrow = 2, 
                                      labels = c("(a)", "(b)")),
-                bottom = text_grob("Figure 7: Abundance of OTUs/ASVs within Planctomyces genus across oxygen concentration", 
+                bottom = text_grob("Figure 8: Abundance of OTUs/ASVs within Planctomyces genus across oxygen concentration", 
                                    face = "bold", size = 12))
 ```
 
