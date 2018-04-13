@@ -1,6 +1,6 @@
 ---
 title: "Module 3: Project 1 by Team 5"
-subtitle: "mothur vs. QIIME2 Microbiome Data Analysis"
+subtitle: "Mothur vs. QIIME2 Microbiome Data Analysis"
 author: 
   - Karl Abuan
   - May Ho
@@ -43,17 +43,20 @@ knitr::opts_chunk$set(fig.width=8, fig.height=6, echo=TRUE, warning=FALSE, inclu
 
 ```{r, eval=FALSE}
 ## try http:// if https:// URLs are not supported
-source("https://bioconductor.org/biocLite.R")  
-biocLite("phyloseq")
+#source("https://bioconductor.org/biocLite.R")  
+#biocLite("phyloseq")
+library("phyloseq")
 library("tidyverse")
 library("gridExtra")
 library("magrittr")
 library("ggpubr")
+library("knitr")
 ```
 
 
 ```{r, include=FALSE}
-source("https://bioconductor.org/biocLite.R")  
+#source("https://bioconductor.org/biocLite.R")
+#biocLite("phyloseq")
 library("phyloseq")
 library("tidyverse")
 library("gridExtra")
@@ -124,19 +127,6 @@ secondMTaxa = subset_taxa(firstMTaxa, Genus %in% basedOnGenus$Genus)
 basedOnGenus <- as.data.frame(tax_table(firstQTaxa)) %>%
   filter(!str_detect(Genus, 'uncultured|unclassified|\\bD_5__\\b'))
 secondQTaxa <- subset_taxa(firstQTaxa, Genus %in% basedOnGenus$Genus)
-
-# Third rule
-basedOnphylums <- as.data.frame(tax_table(secondMTaxa)) %>% 
-  group_by(Phylum) %>% 
-  count() %>% 
-  filter(n > 5)
-thirdMTaxa <- subset_taxa(secondMTaxa, Phylum %in% basedOnphylums$Phylum)
-
-basedOnphylums <- as.data.frame(tax_table(secondQTaxa)) %>% 
-  group_by(Phylum) %>% 
-  count() %>% 
-  filter(n > 5)
-thirdQTaxa <- subset_taxa(secondQTaxa, Phylum %in% basedOnphylums$Phylum)
 ```
 
 
@@ -221,8 +211,8 @@ annotate_figure(figureQ, bottom = text_grob("QIIME2",
 
 The following function will assist us to understand the unique Phylum rank:
 ```{r}
-phylumM <- get_taxa_unique(physeq = thirdMTaxa, taxonomic.rank = "Phylum")
-phylumQ <- get_taxa_unique(physeq = thirdQTaxa, taxonomic.rank = "Phylum")
+phylumM <- get_taxa_unique(physeq = secondMTaxa, taxonomic.rank = "Phylum")
+phylumQ <- get_taxa_unique(physeq = secondQTaxa, taxonomic.rank = "Phylum")
 phylumMQ <- list(phylumM, phylumQ)
 phylumMQ <- data.frame(sapply(phylumMQ, '[', seq(max(sapply(phylumMQ,length)))))
 colnames(phylumMQ) <- c("Phylums from Mothur","Phylums from QIIME2")
@@ -231,18 +221,18 @@ kable(phylumMQ,caption="Phylums from Mothur vs Phylums from QIIME2")
 
 We choose the \emph{Planctomycetes} phylum, and explored the distribution of genera of this phylum.
 ```{r}
-subMTaxa <- subset_taxa(thirdMTaxa, Phylum == "Planctomycetes")
+subMTaxa <- subset_taxa(secondMTaxa, Phylum == "Planctomycetes")
 p9 <- plot_bar(subMTaxa, fill="Genus") + 
   geom_bar(aes(color = Genus, fill = Genus), stat = 'identity', 
            position = 'stack')
 
 annotate_figure(ggarrange(p9, ncol = 1, nrow = 1),
-                bottom = text_grob("Genus distribution of Planctomycetes across samples from mothur", color = "blue", face = "bold", size = 12))
+                bottom = text_grob("Genus distribution of Planctomycetes across samples from Mothur", color = "blue", face = "bold", size = 12))
 ```
 
 
 ```{r}
-subQTaxa = subset_taxa(thirdQTaxa, Phylum == "D_1__Planctomycetes")
+subQTaxa = subset_taxa(secondQTaxa, Phylum == "D_1__Planctomycetes")
 p10 <- plot_bar(subQTaxa, fill="Genus") + 
   geom_bar(aes(color = Genus, fill = Genus), stat = 'identity', 
            position = 'stack')
@@ -258,7 +248,7 @@ p11 <- plot_bar(subMTaxa, fill="Genus", facet_grid=~Family) +
            position = 'stack')
 
 annotate_figure(ggarrange(p11, ncol = 1, nrow = 1),
-                bottom = text_grob("Genus distribution of Planctomycetes across samples grouped by family level from mothur", color = "blue", face = "bold", size = 12))
+                bottom = text_grob("Genus distribution of Planctomycetes across samples grouped by family level from Mothur", color = "blue", face = "bold", size = 12))
 ```
 
 
@@ -273,10 +263,10 @@ annotate_figure(ggarrange(p12, ncol = 1, nrow = 1),
 
 Finally, we settled on performing experimental analysis at \emph{Planctomyces} genus level and its associated OTUs.
 ```{r}
-workingMTaxa = subset_taxa(thirdMTaxa, Genus == "Planctomyces")
+workingMTaxa = subset_taxa(secondMTaxa, Genus == "Planctomyces")
 suggestedMOTUs <- colnames(otu_table(workingMTaxa))
 
-workingQTaxa = subset_taxa(thirdQTaxa, Genus == "D_5__Planctomyces")
+workingQTaxa = subset_taxa(secondQTaxa, Genus == "D_5__Planctomyces")
 suggestedQOTUs <- rownames(otu_table(workingQTaxa))
 
 suggestedMQOTUs <- list(suggestedMOTUs, suggestedQOTUs)
@@ -307,10 +297,10 @@ otu_stats <- rbind(otu_stats, lmMTaxa1$coefficients["Depth_m",])
 otu_stats <- rbind(otu_stats, lmMTaxa2$coefficients["O2_uM",])
 otu_stats <- rbind(otu_stats, lmQTaxa1$coefficients["Depth_m",])
 otu_stats <- rbind(otu_stats, lmQTaxa2$coefficients["O2_uM",])
-tmpNames <- c("Depth (mothur)", "O2_uM (mothur)","Depth (QIIME2)","O2_uM (QIIME2)")
+tmpNames <- c("Depth (Mothur)", "O2_uM (Mothur)","Depth (QIIME2)","O2_uM (QIIME2)")
 otu_stats <- cbind(tmpNames, otu_stats)
 colnames(otu_stats)<- c("Covariates", "Estimate", "Std. Error","t-value","Pr(>|t|)")
-kable(otu_stats,caption="Correlation data of OTUs within Planctomyces genus across depth and oxyzen concentration from mothur and QIIME2")
+kable(otu_stats,caption="Correlation data of OTUs within Planctomyces genus across depth and oxyzen concentration from Mothur and QIIME2")
 ```
 
 
@@ -345,7 +335,7 @@ p16 <- ggplot(dfworkingQTaxa) +
 
 figuredfM <- annotate_figure(ggarrange(p13, p14, ncol = 2, nrow = 1, 
                                      labels = c("(a)", "(b)")),
-                bottom = text_grob("mothur", 
+                bottom = text_grob("Mothur", 
                                    color = "blue", face = "bold", size = 12))
 
 figuredfQ <- annotate_figure(ggarrange(p15, p16, ncol = 2, nrow = 1, 
@@ -375,7 +365,7 @@ p18 <- workingQTaxa %>%
 
 annotate_figure(ggarrange(p17, p18, ncol = 2, nrow = 1, 
                                      labels = c("(a)", "(b)")),
-                bottom = text_grob("Alpha-diversity of Plantomyces across depth from (a) mothur and (b) QIIME2", 
+                bottom = text_grob("Alpha-diversity of Plantomyces across depth from (a) Mothur and (b) QIIME2", 
                                    color = "blue", face = "bold", size = 12))
 ```
 
@@ -392,7 +382,7 @@ for (otu in suggestedMOTUs){
     summary()
   otu_stats <- rbind(otu_stats, linear_fit$coefficients["Depth_m",])
 }
-tmpNames <- paste(suggestedMOTUs," (mothur) ")
+tmpNames <- paste(suggestedMOTUs," (Mothur) ")
 
 for (otu in suggestedQOTUs){
   linear_fit <- workingQTaxa %>% 
@@ -428,7 +418,7 @@ p20 <- workingMTaxa %>% psmelt() %>% ggplot() +
 
 annotate_figure(ggarrange(p19, p20, ncol = 2, nrow = 1, 
                                      labels = c("(a)", "(b)")),
-                bottom = text_grob("Abundance of OTUs within Planctomyces genus across depth from mothur", 
+                bottom = text_grob("Abundance of OTUs within Planctomyces genus across depth from Mothur", 
                                    color = "blue", face = "bold", size = 12))
 ```
 
@@ -450,7 +440,7 @@ p22 <- workingQTaxa %>% psmelt() %>% ggplot() +
 
 annotate_figure(ggarrange(p21, p22, ncol = 2, nrow = 1, 
                                      labels = c("(a)", "(b)")),
-                bottom = text_grob("Abundance of ASVs within Planctomyces genus across depth from mothur", 
+                bottom = text_grob("Abundance of ASVs within Planctomyces genus across depth from Mothur", 
                                    color = "blue", face = "bold", size = 12))
 ```
 
@@ -472,7 +462,7 @@ p24 <- workingMTaxa %>% psmelt() %>% ggplot() +
 
 annotate_figure(ggarrange(p23, p24, ncol = 2, nrow = 1, 
                                      labels = c("(a)", "(b)")),
-                bottom = text_grob("Abundance of OTUs within Planctomyces genus across oxygen concentration from mothur", 
+                bottom = text_grob("Abundance of OTUs within Planctomyces genus across oxygen concentration from Mothur", 
                                    color = "blue", face = "bold", size = 12))
 ```
 
