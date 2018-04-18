@@ -27,7 +27,7 @@ output:
 mainfont: Times
 fontsize: 11 pt
 editor_options:
-  chunk_output_type: console
+  chunk_output_type: inline
 urlcolor: blue
 link-citations: yes
 bibliography: main.bib
