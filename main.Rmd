@@ -14,16 +14,16 @@ date: "`r format(Sys.time(), '%B %d, %Y')`"
 header-includes:
    - \newcommand*{\secref}[1]{Section~\ref{#1}}
 output:
-  html_document:
-    toc: yes
-    toc_float:
-      collapsed: no
   pdf_document:
     toc: yes
     toc_depth: 3
     number_sections: yes
     fig_caption: false
     df_print: kable
+  html_document:
+    toc: yes
+    toc_float:
+      collapsed: no
 mainfont: Times
 fontsize: 11 pt
 editor_options:
