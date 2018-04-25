@@ -14,16 +14,16 @@ date: "`r format(Sys.time(), '%B %d, %Y')`"
 header-includes:
    - \newcommand*{\secref}[1]{Section~\ref{#1}}
 output:
+  html_document:
+    toc: yes
+    toc_float:
+      collapsed: no
   pdf_document:
     toc: yes
     toc_depth: 3
     number_sections: yes
     fig_caption: false
     df_print: kable
-  html_document:
-    toc: yes
-    toc_float:
-      collapsed: no
 mainfont: Times
 fontsize: 11 pt
 editor_options:
@@ -35,8 +35,7 @@ csl: bmc-bioinformatics.csl
 ---
       
 ```{r global_options, include=FALSE}
-knitr::opts_chunk$set(fig.width=8, fig.height=6, fig.align = "center",                           echo=TRUE, warning=FALSE, include=TRUE, tidy.opts=list(width.cutoff=60),
-                      tidy=TRUE, message=FALSE)
+knitr::opts_chunk$set(fig.width=8, fig.height=6, fig.align = "center", echo=TRUE, warning=FALSE, include=TRUE, tidy.opts=list(width.cutoff=60), tidy=TRUE, message=FALSE)
 ```
     
     
