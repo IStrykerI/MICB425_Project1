@@ -4,7 +4,7 @@ subtitle: "Mothur vs. QIIME2 Microbiome Data Analysis"
 author: 
   - Karl Abuan
   - May Ho
-  - Jonah Lin
+  - Wei Ting Lin (Jonah)
   - Leilynaz Malekafzali
   - Tiffany Yang
   - Abdur Rahman M. A. Basher
